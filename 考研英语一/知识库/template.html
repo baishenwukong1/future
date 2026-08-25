@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f2430">
+<title>考研 · DeepSeek 对话整理</title>
+<style>
+  :root{
+    --bg:#f5f6fa; --card:#fff; --ink:#1f2430; --sub:#7a8194;
+    --brand:#4f6ef7; --line:#e8eaf0; --user:#eef1fb; --ai:#f7f8fd;
+    --radius:16px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.6;
+  }
+  header{
+    background:linear-gradient(135deg,#2b3150,#1f2430);
+    color:#fff; padding:20px 16px 16px;
+  }
+  header h1{margin:0; font-size:20px; font-weight:800}
+  header p{margin:6px 0 0; font-size:13px; opacity:.75}
+  header input{
+    margin-top:12px; width:100%; border:none; border-radius:12px;
+    padding:12px 14px; font-size:15px; background:rgba(255,255,255,.14); color:#fff;
+    outline:none;
+  }
+  header input::placeholder{color:rgba(255,255,255,.55)}
+  main{padding:16px; max-width:860px; margin:0 auto}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin:4px 0 16px}
+  .chip{
+    border:none; background:var(--card); border:1px solid var(--line); color:var(--sub);
+    padding:7px 14px; border-radius:999px; font-size:13px; cursor:pointer;
+  }
+  .chip.on{background:var(--brand); color:#fff; border-color:var(--brand)}
+  .subject{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(20,24,40,.04);
+  }
+  .subject h2{margin:0 0 4px; font-size:17px}
+  .subject .meta{color:var(--sub); font-size:13px; margin-bottom:6px}
+  .entry{margin-top:14px; padding-top:12px; border-top:1px dashed var(--line)}
+  .entry:first-of-type{border-top:none; margin-top:0; padding-top:0}
+  .entry .word{font-size:20px; font-weight:800; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+  .entry .word .cnt{font-size:12px; color:var(--sub); font-weight:400}
+  details{
+    border:1px solid var(--line); border-radius:14px; margin-top:10px;
+    background:#fff; overflow:hidden;
+  }
+  details summary{
+    cursor:pointer; padding:12px 14px; list-style:none; font-size:14.5px; font-weight:600;
+    display:flex; align-items:center; gap:10px;
+  }
+  details summary::-webkit-details-marker{display:none}
+  details summary .q{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  details summary .arrow{color:var(--sub); transition:transform .2s}
+  details[open] summary .arrow{transform:rotate(90deg)}
+  details .body{padding:0 14px 14px}
+  .msg{display:flex; gap:10px; margin-top:12px}
+  .msg .avatar{
+    width:28px; height:28px; border-radius:9px; flex:none;
+    display:flex; align-items:center; justify-content:center; font-size:14px; color:#fff;
+  }
+  .msg.user .avatar{background:var(--brand)}
+  .msg.ai .avatar{background:#5a647e}
+  .msg .bubble{
+    flex:1; border-radius:12px; padding:10px 13px; font-size:14.5px; min-width:0;
+    overflow-wrap:break-word; word-break:break-word;
+  }
+  .msg.user .bubble{background:var(--user)}
+  .msg.ai .bubble{background:var(--ai)}
+  .msg .bubble p{margin:0 0 8px}
+  .msg .bubble p:last-child{margin-bottom:0}
+  .msg .bubble hr{border:none; border-top:1px dashed var(--line); margin:10px 0}
+  .msg .bubble strong{color:#2b3150}
+  .msg .bubble code{
+    background:#e8ebf5; border-radius:5px; padding:1px 5px; font-size:13px;
+    font-family:Consolas,Menlo,monospace;
+  }
+  .msg .bubble table{border-collapse:collapse; width:100%; margin:8px 0; font-size:13px}
+  .msg .bubble th,.msg .bubble td{border:1px solid var(--line); padding:6px 8px; text-align:left; vertical-align:top}
+  .msg .bubble th{background:#eef1fb}
+  .msg .bubble ul,.msg .bubble ol{margin:6px 0; padding-left:22px}
+  .msg .bubble blockquote{
+    margin:8px 0; padding:6px 12px; border-left:3px solid var(--brand);
+    background:#f0f3fd; border-radius:6px; color:#3a4160;
+  }
+  .empty{color:var(--sub); text-align:center; padding:40px 0}
+  footer{
+    text-align:center; color:var(--sub); font-size:12px; padding:20px 12px 40px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>考研 · DeepSeek 对话整理</h1>
+  <p>按单词归档的个人知识库 · 内容由 AI 生成仅供参考</p>
+  <input id="search" type="search" placeholder="搜索单词或讲解内容…" oninput="applyFilter()">
+</header>
+
+<main>
+  <div class="chips" id="subjectChips"></div>
+  <div id="content"></div>
+  <div class="empty" id="empty" style="display:none">没有匹配的内容，换个关键词试试</div>
+</main>
+
+<footer>数据来源：DeepSeek 分享对话 · 本地离线网页</footer>
+
+<script>
+const DATA = __DATA__;
+
+let curSubject = "all";
+let curEntry = null;
+
+function esc(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function inline(t){
+  t = esc(t);
+  t = t.replace(/`([^`]+)`/g, "<code>$1</code>");
+  t = t.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  t = t.replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+  return t;
+}
+function tableHtml(rows){
+  var split = function(r){ return r.replace(/^\||\|$/g,"").split("|").map(function(c){return c.trim();}); };
+  var head = split(rows[0]);
+  var h = "<table><thead><tr>" + head.map(function(x){return "<th>"+inline(x)+"</th>";}).join("") + "</tr></thead><tbody>";
+  for(var j=2; j<rows.length; j++){
+    var cells = split(rows[j]);
+    h += "<tr>" + cells.map(function(c){return "<td>"+inline(c)+"</td>";}).join("") + "</tr>";
+  }
+  return h + "</tbody></table>";
+}
+function md(t){
+  var lines = t.split(/\r?\n/);
+  var html = "", i = 0;
+  while(i < lines.length){
+    var line = lines[i];
+    if(/^\s*$/.test(line)){ i++; continue; }
+    if(/^---+$/.test(line.trim())){ html += "<hr>"; i++; continue; }
+    if(line.trim().charAt(0) === "|"){
+      var rows = [];
+      while(i < lines.length && lines[i].trim().charAt(0) === "|"){ rows.push(lines[i].trim()); i++; }
+      html += tableHtml(rows);
+      continue;
+    }
+    if(/^\s*[-*]\s+/.test(line)){
+      var ul = [];
+      while(i < lines.length && /^\s*[-*]\s+/.test(lines[i])){ ul.push(lines[i].replace(/^\s*[-*]\s+/,"")); i++; }
+      html += "<ul>" + ul.map(function(x){ return "<li>"+inline(x)+"</li>"; }).join("") + "</ul>";
+      continue;
+    }
+    if(/^\s*\d+[.、)]\s+/.test(line)){
+      var ol = [];
+      while(i < lines.length && /^\s*\d+[.、)]\s+/.test(lines[i])){ ol.push(lines[i].replace(/^\s*\d+[.、)]\s+/,"")); i++; }
+      html += "<ol>" + ol.map(function(x){ return "<li>"+inline(x)+"</li>"; }).join("") + "</ol>";
+      continue;
+    }
+    if(line.trim().charAt(0) === ">"){
+      var q = [];
+      while(i < lines.length && lines[i].trim().charAt(0) === ">"){ q.push(lines[i].trim().replace(/^>\s?/,"")); i++; }
+      html += "<blockquote>" + md(q.join("\n")) + "</blockquote>";
+      continue;
+    }
+    var para = [line]; i++;
+    while(i < lines.length && lines[i].trim() !== "" &&
+      lines[i].trim().charAt(0) !== "|" &&
+      !/^\s*[-*]\s+/.test(lines[i]) &&
+      !/^\s*\d+[.、)]\s+/.test(lines[i]) &&
+      !/^---+$/.test(lines[i].trim())){
+      para.push(lines[i]); i++;
+    }
+    html += "<p>" + para.map(inline).join("<br>") + "</p>";
+  }
+  return html;
+}
+
+function bubble(role, text){
+  var cls = (role === "USER") ? "user" : "ai";
+  var face = (role === "USER") ? "你" : "AI";
+  return '<div class="msg ' + cls + '"><div class="avatar">' + face + '</div><div class="bubble">' + md(text) + '</div></div>';
+}
+
+function render(){
+  var chips = '<button class="chip' + (curSubject==="all" && !curEntry ? " on" : "") + '" onclick="setAll()">全部</button>';
+  DATA.subjects.forEach(function(s){
+    chips += '<button class="chip' + (curSubject===s.name && !curEntry ? " on" : "") + '" onclick="setSubject(\'' + s.name + '\')">' + esc(s.name) + '</button>';
+  });
+  DATA.subjects.forEach(function(s){
+    s.entries.forEach(function(e){
+      chips += '<button class="chip' + (curEntry===e.key ? " on" : "") + '" onclick="setEntry(\'' + e.key + '\')">' + esc(e.label) + '</button>';
+    });
+  });
+  document.getElementById("subjectChips").innerHTML = chips;
+
+  var kw = (document.getElementById("search").value || "").trim().toLowerCase();
+  var html = "";
+  DATA.subjects.forEach(function(s){
+    if(curSubject !== "all" && curSubject !== s.name) return;
+    var eh = "";
+    s.entries.forEach(function(e){
+      if(curEntry && curEntry !== e.key) return;
+      var cards = "";
+      e.cards.forEach(function(c){
+        var text = (c.q + " " + c.a.join(" ")).toLowerCase();
+        if(kw && text.indexOf(kw) < 0) return;
+        var body = bubble("USER", c.q);
+        c.a.forEach(function(a){ body += bubble("AI", a); });
+        cards += '<details><summary><span class="q">' + inline(c.q) + '</span><span class="arrow">▶</span></summary><div class="body">' + body + '</div></details>';
+      });
+      if(!cards) return;
+      eh += '<div class="entry"><div class="word">' + esc(e.label) + ' <span class="cnt">' + e.cards.length + ' 条讲解</span></div>' + cards + '</div>';
+    });
+    if(!eh) return;
+    html += '<div class="subject"><h2>' + esc(s.name) + '</h2><div class="meta">共 ' + s.entries.length + ' 个词条</div>' + eh + '</div>';
+  });
+  document.getElementById("content").innerHTML = html || "";
+  document.getElementById("empty").style.display = (!html && kw) ? "block" : "none";
+}
+function setAll(){ curSubject = "all"; curEntry = null; render(); }
+function setSubject(n){ curSubject = n; curEntry = null; render(); }
+function setEntry(k){ curEntry = (curEntry === k) ? null : k; render(); }
+function applyFilter(){ curEntry = null; render(); }
+render();
+</script>
+</body>
+</html>

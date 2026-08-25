@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>函数全掌握 · 考研数学一</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <h1>📐 函数全掌握</h1>
+      <p class="subtitle">考研数学一 · 从初中到大学 · 函数与反函数对照学习</p>
+    </div>
+    <button id="themeToggle" class="btn ghost" type="button">🌙 深色模式</button>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs" aria-label="章节导航">
+  <button class="tab active" data-tab="junior" type="button">初中篇</button>
+  <button class="tab" data-tab="senior" type="button">高中篇</button>
+  <button class="tab" data-tab="college" type="button">大学篇</button>
+  <button class="tab" data-tab="summary" type="button">速查总表</button>
+</nav>
+
+<section class="intro" id="intro">
+  <h2>为什么把函数和反函数对照着学？</h2>
+  <div class="intro-cols">
+    <div class="intro-item">
+      <h3>① 图像对称</h3>
+      <p>函数与反函数的图像关于直线 <i>y = x</i> 对称——对着看，一个变成另一个。</p>
+    </div>
+    <div class="intro-item">
+      <h3>② 定义域值域互换</h3>
+      <p>原函数的值域 = 反函数的定义域，原函数的定义域 = 反函数的值域。</p>
+    </div>
+    <div class="intro-item">
+      <h3>③ 单调性一致</h3>
+      <p>严格单调的函数必有反函数，且反函数与原函数单调性相同。</p>
+    </div>
+  </div>
+  <p class="hint">💡 使用提示：拖动滑块可实时改变参数；鼠标悬停曲线可读坐标与斜率；「追踪演示」让动点沿函数和反函数同步运动；「镜像动画」演示曲线沿 y=x 翻折；「y=x」「渐近线」按钮可开关辅助线；按住鼠标拖动画布可平移、滚动滚轮可缩放；右上角可切换深色/浅色模式。</p>
+</section>
+
+<main id="cards"></main>
+<div id="summary" hidden></div>
+
+<footer>
+  <p>函数全掌握 · 考研数学一复习工具 · 31 个函数家族卡片 · 纯静态网页，离线可用</p>
+</footer>
+
+<script src="js/data-junior.js"></script>
+<script src="js/data-senior.js"></script>
+<script src="js/data-college.js"></script>
+<script src="js/content-detail.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

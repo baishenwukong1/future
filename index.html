@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>考研统筹舱 · 向未来出发</title>
+<style>
+  :root {
+    --bg: #0b1220;
+    --panel: #141d30;
+    --panel-2: #1b2740;
+    --line: #263449;
+    --text: #e6edf7;
+    --muted: #8ea3bf;
+    --accent: #6366f1;
+    --accent-2: #22d3ee;
+    --good: #34d399;
+    --warn: #fbbf24;
+    --danger: #f87171;
+    --radius: 16px;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background:
+      radial-gradient(1000px 500px at 85% -10%, rgba(99,102,241,.22), transparent 60%),
+      radial-gradient(800px 400px at -10% 110%, rgba(34,211,238,.14), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 20px 80px; }
+
+  header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 26px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand .logo {
+    width: 42px; height: 42px; border-radius: 12px; flex: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+    box-shadow: 0 6px 18px rgba(99,102,241,.4);
+  }
+  .brand h1 { font-size: 20px; font-weight: 700; letter-spacing: 1px; }
+  .brand p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .top-actions { display: flex; gap: 8px; }
+
+  .btn {
+    appearance: none; border: 1px solid var(--line); background: var(--panel-2); color: var(--text);
+    padding: 9px 16px; border-radius: 10px; font-size: 14px; cursor: pointer; transition: .18s;
+    font-family: inherit;
+  }
+  .btn:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .btn.primary { background: linear-gradient(135deg, var(--accent), #4f46e5); border: none; box-shadow: 0 6px 16px rgba(99,102,241,.35); }
+  .btn.primary:hover { filter: brightness(1.1); }
+  .btn.ghost { background: transparent; }
+  .btn.small { padding: 6px 11px; font-size: 13px; border-radius: 8px; }
+  .btn.danger { color: var(--danger); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+  .card {
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 22px;
+  }
+  .card h2 { font-size: 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .card h2 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+
+  /* 倒计时 */
+  .countdown { text-align: center; padding: 34px 22px 30px; position: relative; overflow: hidden; }
+  .countdown::before {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(120deg, rgba(99,102,241,.12), transparent 45%, rgba(34,211,238,.1));
+    pointer-events: none;
+  }
+  .countdown .label { color: var(--muted); font-size: 13px; letter-spacing: 3px; }
+  .countdown .big { font-size: clamp(48px, 9vw, 84px); font-weight: 800; line-height: 1.15;
+    background: linear-gradient(120deg, #a5b4fc, var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent;
+    font-variant-numeric: tabular-nums;
+  }
+  .countdown .big small { font-size: .4em; font-weight: 600; }
+  .countdown .detail { margin-top: 8px; font-size: 13px; color: var(--muted); }
+  .countdown .date-edit { margin-top: 14px; display: inline-flex; gap: 8px; align-items: center; }
+  .countdown input[type=date] {
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    padding: 7px 12px; border-radius: 9px; font-size: 13px; font-family: inherit;
+  }
+
+  /* 首页科目卡片 */
+  .subject-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); gap: 16px; margin-top: 20px; }
+  .subject-card {
+    position: relative; border-radius: var(--radius); padding: 22px; cursor: pointer; overflow: hidden;
+    background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow);
+    transition: .2s; display: flex; flex-direction: column; gap: 12px;
+  }
+  .subject-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--sc, var(--accent)); }
+  .subject-card:hover { transform: translateY(-4px); border-color: var(--sc, var(--accent)); box-shadow: 0 16px 34px rgba(0,0,0,.45); }
+  .subject-card .icon { font-size: 30px; }
+  .subject-card .name { font-size: 18px; font-weight: 700; }
+  .subject-card .meta { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+  .subject-card .go { margin-top: auto; font-size: 13px; color: var(--sc, var(--accent)); display: flex; align-items: center; gap: 4px; }
+  .bar { height: 8px; background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--sc, var(--accent)), var(--accent-2)); transition: width .4s; }
+
+  /* 科目页 */
+  .sub-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }
+  .sub-header .back { font-size: 15px; color: var(--muted); cursor: pointer; text-decoration: none; display: flex; align-items: center; gap: 4px; }
+  .sub-header .back:hover { color: var(--text); }
+  .sub-header h2 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+  .sub-header h2 span { width: 38px; height: 38px; border-radius: 11px; background: var(--sc, var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .tools { display: flex; gap: 10px; flex-wrap: wrap; }
+  .tool-link {
+    display: inline-flex; align-items: center; gap: 7px; text-decoration: none; color: var(--text);
+    background: var(--panel-2); border: 1px solid var(--line); padding: 10px 16px; border-radius: 11px; font-size: 14px; transition: .18s;
+  }
+  .tool-link:hover { border-color: var(--sc, var(--accent)); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.3); }
+  .tool-link .arr { color: var(--sc, var(--accent)); }
+  .no-tools { color: var(--muted); font-size: 13px; background: rgba(255,255,255,.04); border: 1px dashed var(--line); border-radius: 11px; padding: 12px 16px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  @media (max-width: 780px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  /* 计时器 */
+  .timer-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .ring { position: relative; width: 200px; height: 200px; }
+  .ring svg { transform: rotate(-90deg); }
+  .ring .ring-bg { stroke: rgba(255,255,255,.08); }
+  .ring .ring-fg { stroke: url(#grad); stroke-linecap: round; transition: stroke-dashoffset .3s linear; }
+  .ring .time {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 40px; font-weight: 800; font-variant-numeric: tabular-nums;
+  }
+  .ring .time small { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .timer-presets { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .timer-presets .btn.active { background: var(--accent); border-color: transparent; }
+  .timer-ctrl { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .timer-custom { display: flex; gap: 8px; align-items: center; }
+  .timer-custom input { width: 68px; background: var(--panel-2); border: 1px solid var(--line); color: var(--text); padding: 8px 10px; border-radius: 9px; font-size: 14px; font-family: inherit; }
+  .timer-status { font-size: 13px; color: var(--muted); }
+  .today-focus { text-align: center; margin-top: 6px; font-size: 13px; }
+  .today-focus b { color: var(--accent-2); font-size: 18px; }
+  .week-chart { display: flex; gap: 6px; align-items: flex-end; height: 56px; margin-top: 12px; }
+  .week-chart .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .week-chart .col .v { width: 100%; border-radius: 5px 5px 0 0; background: linear-gradient(180deg, var(--accent), var(--accent-2)); min-height: 2px; }
+  .week-chart .col span { font-size: 10px; color: var(--muted); }
+
+  /* 进度 */
+  .progress-row { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .progress-row input[type=range] { flex: 1; accent-color: var(--accent); height: 6px; }
+  .progress-row output { font-size: 22px; font-weight: 800; min-width: 58px; text-align: right; color: var(--accent-2); }
+  textarea, input[type=text] {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 10px; padding: 10px 12px; font-size: 14px; font-family: inherit; resize: vertical;
+  }
+  input[type=text] { margin-top: 8px; }
+  textarea { min-height: 72px; }
+  .saved-hint { font-size: 12px; color: var(--good); opacity: 0; transition: .3s; }
+  .saved-hint.show { opacity: 1; }
+
+  /* 阶段目标 */
+  .stage { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 11px; background: rgba(255,255,255,.04); margin-bottom: 8px; border: 1px solid transparent; }
+  .stage:hover { border-color: var(--line); }
+  .stage.done .stage-title { text-decoration: line-through; color: var(--muted); }
+  .stage input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--good); cursor: pointer; flex: none; }
+  .stage .stage-title { flex: 1; font-size: 14px; }
+  .stage .stage-date { font-size: 12px; color: var(--muted); }
+  .stage .del { color: var(--muted); cursor: pointer; font-size: 15px; border: none; background: none; padding: 2px 6px; border-radius: 6px; }
+  .stage .del:hover { color: var(--danger); background: rgba(248,113,113,.12); }
+  .stage-add { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .stage-add input { flex: 1; min-width: 120px; margin-top: 0; }
+  .stage-add input[type=date] { width: auto; background: var(--panel-2); border: 1px solid var(--line); color: var(--text); padding: 9px 12px; border-radius: 9px; font-family: inherit; font-size: 13px; }
+  .empty-tip { color: var(--muted); font-size: 13px; padding: 10px 0; }
+
+  footer { margin-top: 40px; text-align: center; color: var(--muted); font-size: 12px; line-height: 1.8; }
+  footer .actions { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; flex-wrap: wrap; }
+
+  .toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    padding: 11px 20px; border-radius: 12px; font-size: 14px; box-shadow: var(--shadow);
+    opacity: 0; pointer-events: none; transition: .25s; z-index: 99;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="logo">🚀</div>
+      <div>
+        <h1>考研统筹舱</h1>
+        <p>未来的我实现梦想了吗？</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="btn ghost small" onclick="exportData()">导出数据</button>
+      <button class="btn ghost small" onclick="document.getElementById('importFile').click()">导入数据</button>
+      <input type="file" id="importFile" accept="application/json" class="hidden" onchange="importData(event)">
+    </div>
+  </header>
+
+  <main id="view"></main>
+
+  <footer>
+    <div class="actions">
+      <button class="btn ghost small" onclick="goHome()">⌂ 回到首页</button>
+      <button class="btn ghost small danger" onclick="if(confirm('确定清空所有记录数据吗？此操作不可恢复。')) resetAll()">重置全部数据</button>
+    </div>
+    数据保存在浏览器本地 · 点击右上角「导出数据」可随时备份
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#22d3ee"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<script>
+const LS_KEY = "kaoyan_plan_v1";
+const EXAM_DEFAULT = "2026-12-19";
+const SUBJECTS = {
+  math: {
+    id: "math", name: "考研数学一", short: "数学", icon: "📐", color: "#6366f1",
+    tools: [
+      { name: "函数全掌握 · 学习工具", url: "考研数学一/函数图像学习/index.html" }
+    ]
+  },
+  cs: {
+    id: "cs", name: "专业课408", short: "408", icon: "💻", color: "#22d3ee",
+    tools: []
+  },
+  politics: {
+    id: "politics", name: "考研政治", short: "政治", icon: "🏛️", color: "#f472b6",
+    tools: []
+  },
+  english: {
+    id: "english", name: "考研英语一", short: "英语", icon: "📖", color: "#fbbf24",
+    tools: [
+      { name: "词根记忆卡片", url: "考研英语一/词根记忆卡片/index.html" },
+      { name: "知识库 · DeepSeek 对话整理", url: "考研英语一/知识库/index.html" },
+      { name: "背单词 · 艾宾浩斯复习", url: "考研英语一/背单词/背单词.html" }
+    ]
+  }
+};
+
+let data = load();
+
+/* ---------- 数据 ---------- */
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function fmtDate(d) {
+  const pad = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+}
+function today() { return fmtDate(new Date()); }
+function defaultStages() {
+  return [
+    { id: uid(), title: "基础阶段", targetDate: "", done: false },
+    { id: uid(), title: "强化阶段", targetDate: "", done: false },
+    { id: uid(), title: "冲刺阶段", targetDate: "", done: false }
+  ];
+}
+function defaultData() {
+  return {
+    examDate: EXAM_DEFAULT,
+    subjects: {},
+    focusLogs: []
+  };
+}
+function freshData() {
+  const d = defaultData();
+  for (const k of Object.keys(SUBJECTS)) {
+    d.subjects[k] = { progress: 0, note: "", updated: "", stages: defaultStages() };
+  }
+  return d;
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return freshData();
+    const d = JSON.parse(raw);
+    const merged = freshData();
+    for (const k of Object.keys(SUBJECTS)) {
+      if (d.subjects && d.subjects[k]) {
+        merged.subjects[k] = Object.assign(merged.subjects[k], d.subjects[k]);
+        if (!Array.isArray(merged.subjects[k].stages)) merged.subjects[k].stages = defaultStages();
+      }
+    }
+    if (d.examDate) merged.examDate = d.examDate;
+    if (Array.isArray(d.focusLogs)) merged.focusLogs = d.focusLogs;
+    return merged;
+  } catch (e) {
+    return freshData();
+  }
+}
+function save() {
+  localStorage.setItem(LS_KEY, JSON.stringify(data));
+}
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), 2200);
+}
+function resetAll() {
+  data = freshData();
+  save();
+  render();
+  toast("已重置全部数据");
+}
+function exportData() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "考研统筹数据-" + today() + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("已导出数据文件");
+}
+function importData(ev) {
+  const f = ev.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const d = JSON.parse(reader.result);
+      if (!d.subjects) throw new Error("bad");
+      const merged = freshData();
+      for (const k of Object.keys(SUBJECTS)) {
+        if (d.subjects[k]) merged.subjects[k] = Object.assign(merged.subjects[k], d.subjects[k]);
+      }
+      if (d.examDate) merged.examDate = d.examDate;
+      if (Array.isArray(d.focusLogs)) merged.focusLogs = d.focusLogs;
+      data = merged;
+      save();
+      render();
+      toast("导入成功");
+    } catch (e) {
+      toast("文件格式不正确，导入失败");
+    }
+  };
+  reader.readAsText(f);
+  ev.target.value = "";
+}
+
+/* ---------- 倒计时 ---------- */
+function countdownHTML() {
+  const target = new Date(data.examDate + "T00:00:00");
+  const now = new Date();
+  let diff = Math.floor((target - now) / 1000);
+  if (diff < 0) diff = 0;
+  const days = Math.floor(diff / 86400);
+  const hours = Math.floor((diff % 86400) / 3600);
+  const mins = Math.floor((diff % 3600) / 60);
+  const secs = diff % 60;
+  const pad = n => String(n).padStart(2, "0");
+  return `
+    <div class="card countdown">
+      <div class="label">距 2027 考研还有</div>
+      <div class="big">${days}<small> 天</small></div>
+      <div class="detail">${pad(hours)} : ${pad(mins)} : ${pad(secs)}</div>
+      <div class="date-edit">
+        <input type="date" value="${data.examDate}" onchange="setExamDate(this.value)">
+        <button class="btn small" onclick="alert('默认考试日期为 2026-12-19(2027 考研初试预计时间),可在日期框里修改。')">考试日期</button>
+      </div>
+    </div>`;
+}
+function setExamDate(v) {
+  if (!v) return;
+  data.examDate = v;
+  save();
+  render();
+  toast("考试日期已更新");
+}
+
+/* ---------- 首页 ---------- */
+function cardHTML(k) {
+  const s = SUBJECTS[k];
+  const sub = data.subjects[k];
+  const done = sub.stages.filter(x => x.done).length;
+  const next = sub.stages.find(x => !x.done);
+  const totalFocus = data.focusLogs.filter(l => l.subject === k).reduce((a, b) => a + b.minutes, 0);
+  return `
+    <div class="subject-card" style="--sc:${s.color}" onclick="location.hash='#/${k}'">
+      <div class="icon">${s.icon}</div>
+      <div class="name">${s.name}</div>
+      <div class="bar"><i style="width:${sub.progress}%; background:linear-gradient(90deg,${s.color},var(--accent-2))"></i></div>
+      <div class="meta">
+        <span>进度 ${sub.progress}%</span>
+        <span>阶段 ${done}/${sub.stages.length}</span>
+      </div>
+      <div class="meta" style="margin-top:-6px">
+        <span>${next ? "下一目标：" + next.title : "目标全部完成 🎉"}</span>
+        <span>专注 ${totalFocus} 分钟</span>
+      </div>
+      <div class="go">进入 ${s.short} 统筹 <span>→</span></div>
+    </div>`;
+}
+function dashboardHTML() {
+  const todayTotal = data.focusLogs.filter(l => l.date === today()).reduce((a, b) => a + b.minutes, 0);
+  const week = weekFocus();
+  const max = Math.max(...week.map(w => w.minutes), 1);
+  return `
+    ${countdownHTML()}
+    <div class="card" style="margin-top:16px">
+      <h2><span class="dot"></span>今日专注 <b style="color:var(--accent-2)">${todayTotal}</b> 分钟</h2>
+      <div class="week-chart">
+        ${week.map(w => `
+          <div class="col" title="${w.label} ${w.minutes} 分钟">
+            <div class="v" style="height:${Math.max(2, w.minutes / max * 100)}%"></div>
+            <span>${w.label}</span>
+          </div>`).join("")}
+      </div>
+    </div>
+    <div class="subject-grid">
+      ${Object.keys(SUBJECTS).map(cardHTML).join("")}
+    </div>`;
+}
+function weekFocus() {
+  const out = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = fmtDate(d);
+    const minutes = data.focusLogs.filter(l => l.date === key).reduce((a, b) => a + b.minutes, 0);
+    out.push({ label: ["日", "一", "二", "三", "四", "五", "六"][d.getDay()], minutes });
+  }
+  return out;
+}
+
+/* ---------- 计时器 ---------- */
+const timer = {
+  total: 45 * 60,
+  remaining: 45 * 60,
+  running: false,
+  interval: null,
+  subject: "math",
+  preset: 45
+};
+function timerHTML(k) {
+  const r = Math.PI * 2 * 90;
+  const frac = timer.total ? timer.remaining / timer.total : 0;
+  const mm = String(Math.floor(timer.remaining / 60)).padStart(2, "0");
+  const ss = String(timer.remaining % 60).padStart(2, "0");
+  const presets = [25, 45, 60, 90];
+  return `
+    <div class="card">
+      <h2><span class="dot"></span>专注计时器</h2>
+      <div class="timer-wrap">
+        <div class="ring">
+          <svg width="200" height="200" viewBox="0 0 200 200">
+            <circle class="ring-bg" cx="100" cy="100" r="90" fill="none" stroke-width="10"/>
+            <circle class="ring-fg" cx="100" cy="100" r="90" fill="none" stroke-width="10"
+              stroke-dasharray="${r}" stroke-dashoffset="${r * (1 - frac)}"/>
+          </svg>
+          <div class="time"><div>${mm}:${ss}</div><small>${timer.running ? "专注中…" : timer.remaining < timer.total ? "已暂停" : "准备就绪"}</small></div>
+        </div>
+        <div class="timer-presets">
+          ${presets.map(p => `<button class="btn small ${timer.preset === p && timer.remaining === p * 60 ? "active" : ""}" onclick="setPreset(${p})">${p} 分钟</button>`).join("")}
+          <span class="timer-custom">
+            <input type="number" id="customMin" min="1" max="180" placeholder="自定义">
+            <button class="btn small" onclick="setPreset(parseInt(document.getElementById('customMin').value || '0', 10))">设定</button>
+          </span>
+        </div>
+        <div class="timer-ctrl">
+          <button class="btn primary" onclick="toggleTimer()">${timer.running ? "⏸ 暂停" : "▶ 开始"}</button>
+          <button class="btn" onclick="resetTimer()">↺ 重置</button>
+        </div>
+        <div class="today-focus">今日 ${SUBJECTS[k].name} 专注 <b>${subjectToday(k)}</b> 分钟</div>
+      </div>
+    </div>`;
+}
+function setPreset(min) {
+  if (!min || min < 1) { toast("请输入有效的分钟数"); return; }
+  clearInterval(timer.interval);
+  timer.total = timer.remaining = min * 60;
+  timer.preset = min;
+  timer.running = false;
+  render();
+}
+function toggleTimer() {
+  if (timer.remaining <= 0) resetTimer();
+  timer.running = !timer.running;
+  if (timer.running) {
+    timer.interval = setInterval(tick, 1000);
+  } else {
+    clearInterval(timer.interval);
+  }
+  render();
+}
+function resetTimer() {
+  clearInterval(timer.interval);
+  timer.remaining = timer.total;
+  timer.running = false;
+  render();
+}
+function tick() {
+  if (timer.remaining > 0) {
+    timer.remaining--;
+    const el = document.querySelector(".ring .time div");
+    if (el) {
+      const mm = String(Math.floor(timer.remaining / 60)).padStart(2, "0");
+      const ss = String(timer.remaining % 60).padStart(2, "0");
+      el.textContent = mm + ":" + ss;
+      const r = Math.PI * 2 * 90;
+      const frac = timer.remaining / timer.total;
+      const fg = document.querySelector(".ring-fg");
+      if (fg) fg.setAttribute("stroke-dashoffset", r * (1 - frac));
+    }
+  }
+  if (timer.remaining <= 0) {
+    clearInterval(timer.interval);
+    timer.running = false;
+    const min = Math.max(1, Math.round(timer.total / 60));
+    data.focusLogs.push({ date: today(), subject: timer.subject, minutes: min, ts: Date.now() });
+    save();
+    beep();
+    render();
+    toast("🎉 专注 " + min + " 分钟完成！已记录。");
+  }
+}
+function subjectToday(k) {
+  return data.focusLogs.filter(l => l.date === today() && l.subject === k).reduce((a, b) => a + b.minutes, 0);
+}
+function beep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 1, 2].forEach(i => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = 660 + i * 100;
+      g.gain.value = 0.18;
+      o.start(ctx.currentTime + i * 0.28);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.28 + 0.24);
+      o.stop(ctx.currentTime + i * 0.28 + 0.25);
+    });
+  } catch (e) {}
+}
+
+/* ---------- 进度 ---------- */
+function progressHTML(k) {
+  const sub = data.subjects[k];
+  return `
+    <div class="card">
+      <h2><span class="dot"></span>学习进度</h2>
+      <div class="progress-row">
+        <input type="range" min="0" max="100" step="1" value="${sub.progress}"
+          oninput="document.getElementById('progOut').textContent = this.value + '%'">
+        <output id="progOut">${sub.progress}%</output>
+      </div>
+      <textarea id="progNote" placeholder="进度说明 / 当前学到哪里…">${sub.note || ""}</textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+        <span class="saved-hint" id="savedHint">✓ 已保存</span>
+        <button class="btn primary small" onclick="saveProgress('${k}')">保存进度</button>
+      </div>
+    </div>`;
+}
+function saveProgress(k) {
+  const v = parseInt(document.querySelector(".progress-row input[type=range]").value, 10);
+  const note = document.getElementById("progNote").value.trim();
+  data.subjects[k].progress = v;
+  data.subjects[k].note = note;
+  data.subjects[k].updated = today();
+  save();
+  const hint = document.getElementById("savedHint");
+  hint.classList.add("show");
+  setTimeout(() => hint.classList.remove("show"), 2000);
+  toast("进度已保存");
+}
+
+/* ---------- 阶段目标 ---------- */
+function stagesHTML(k) {
+  const list = data.subjects[k].stages;
+  return `
+    <div class="card">
+      <h2><span class="dot"></span>阶段目标</h2>
+      ${list.length === 0 ? `<div class="empty-tip">还没有阶段目标,添加一个吧</div>` : list.map((s, i) => `
+        <div class="stage ${s.done ? "done" : ""}">
+          <input type="checkbox" ${s.done ? "checked" : ""} onchange="toggleStage('${k}', '${s.id}')">
+          <div class="stage-title">${esc(s.title)}</div>
+          <div class="stage-date">${s.targetDate || "未设日期"}</div>
+          <button class="del" onclick="deleteStage('${k}', '${s.id}')" title="删除">✕</button>
+        </div>`).join("")}
+      <div class="stage-add">
+        <input type="text" id="stageTitle" placeholder="目标名称,如:完成线代强化">
+        <input type="date" id="stageDate">
+        <button class="btn primary small" onclick="addStage('${k}')">添加</button>
+      </div>
+    </div>`;
+}
+function addStage(k) {
+  const title = document.getElementById("stageTitle").value.trim();
+  if (!title) { toast("请输入目标名称"); return; }
+  const targetDate = document.getElementById("stageDate").value;
+  data.subjects[k].stages.push({ id: uid(), title, targetDate, done: false });
+  save();
+  render();
+  toast("已添加阶段目标");
+}
+function toggleStage(k, id) {
+  const s = data.subjects[k].stages.find(x => x.id === id);
+  if (s) { s.done = !s.done; save(); render(); }
+}
+function deleteStage(k, id) {
+  data.subjects[k].stages = data.subjects[k].stages.filter(x => x.id !== id);
+  save();
+  render();
+  toast("已删除目标");
+}
+function esc(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+/* ---------- 科目页 ---------- */
+function subjectHTML(k) {
+  const s = SUBJECTS[k];
+  timer.subject = k;
+  return `
+    <div class="sub-header">
+      <a class="back" href="#" onclick="event.preventDefault();goHome()">← 返回首页</a>
+      <h2><span style="background:${s.color}">${s.icon}</span>${s.name}</h2>
+    </div>
+    ${s.tools.length ? `
+      <div class="tools">
+        ${s.tools.map(t => `<a class="tool-link" href="${t.url}" target="_blank" rel="noopener">${esc(t.name)}<span class="arr">↗</span></a>`).join("")}
+      </div>` : `<div class="no-tools">本科目暂无在线学习工具(学习资料使用本地文件),统筹记录功能正常使用。</div>`}
+    <div class="grid-2">
+      ${timerHTML(k)}
+      <div>
+        ${progressHTML(k)}
+        <div style="margin-top:16px">${stagesHTML(k)}</div>
+      </div>
+    </div>`;
+}
+
+/* ---------- 渲染 ---------- */
+function render() {
+  const hash = location.hash.replace(/^#\//, "");
+  const view = document.getElementById("view");
+  if (SUBJECTS[hash]) {
+    document.title = SUBJECTS[hash].name + " · 考研统筹舱";
+    view.innerHTML = subjectHTML(hash);
+  } else {
+    document.title = "考研统筹舱 · 向未来出发";
+    view.innerHTML = dashboardHTML();
+  }
+}
+function goHome() { location.hash = ""; }
+window.addEventListener("hashchange", render);
+render();
+setInterval(() => {
+  if (!location.hash.replace(/^#\//, "")) {
+    const c = document.querySelector(".countdown .big");
+    const d = document.querySelector(".countdown .detail");
+    if (c && d) {
+      const target = new Date(data.examDate + "T00:00:00");
+      let diff = Math.floor((target - new Date()) / 1000);
+      if (diff < 0) diff = 0;
+      c.innerHTML = Math.floor(diff / 86400) + "<small> 天</small>";
+      const pad = n => String(n).padStart(2, "0");
+      d.textContent = pad(Math.floor((diff % 86400) / 3600)) + " : " + pad(Math.floor((diff % 3600) / 60)) + " : " + pad(diff % 60);
+    }
+  }
+}, 1000);
+</script>
+</body>
+</html>
