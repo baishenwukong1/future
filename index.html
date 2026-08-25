@@ -37,7 +37,15 @@
   }
   .bg-overlay {
     position: fixed; inset: 0; z-index: 1; pointer-events: none;
-    background: linear-gradient(180deg, rgba(8,12,24,.58) 0%, rgba(8,12,24,.72) 55%, rgba(8,12,24,.86) 100%);
+    background: linear-gradient(180deg, rgba(8,12,24,.28) 0%, rgba(8,12,24,.40) 55%, rgba(8,12,24,.55) 100%);
+    opacity: .5;
+    transition: opacity .35s ease;
+  }
+  body:hover .bg-overlay {
+    opacity: 1;
+  }
+  @media (hover: none) {
+    .bg-overlay { opacity: 1; }
   }
   .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 20px 80px; }
   .wrap, .toast { position: relative; z-index: 2; }
