@@ -172,6 +172,15 @@
     padding: 10px 12px; border-radius: 10px; font-size: 14px; font-family: inherit; margin-bottom: 16px;
   }
   .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .task-group { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+  .task-group-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; margin-bottom: 6px; }
+  .task-group-head .tg-name { font-weight: 700; }
+  .task-group-head .tg-count { color: var(--muted); font-size: 12px; }
+  .tg-bar { height: 6px; margin-bottom: 8px; }
+  .stage-add select {
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    padding: 9px 10px; border-radius: 9px; font-family: inherit; font-size: 13px;
+  }
   .week-chart { display: flex; gap: 6px; align-items: flex-end; height: 56px; margin-top: 12px; }
   .week-chart .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .week-chart .col .v { width: 100%; border-radius: 5px 5px 0 0; background: linear-gradient(180deg, var(--accent), var(--accent-2)); min-height: 2px; }
@@ -623,6 +632,7 @@ function taskStats(sub) {
 function tasksHTML(k) {
   const sub = data.subjects[k];
   const st = taskStats(sub);
+  const groups = stageGroups(sub);
   return `
     <div class="card">
       <h2><span class="dot"></span>学习任务</h2>
@@ -631,25 +641,57 @@ function tasksHTML(k) {
         <span>进度 ${st.pct}%</span>
         <span>已完成 ${st.done}/${st.total} 个任务</span>
       </div>
-      ${st.total === 0 ? `<div class="empty-tip">还没有学习任务,添加一个吧</div>` : sub.tasks.map(t => `
-        <div class="stage ${t.done ? "done" : ""}">
-          <input type="checkbox" ${t.done ? "checked" : ""} onchange="toggleTask('${k}','${t.id}')">
-          <div class="stage-title">${esc(t.name)}</div>
-          <div class="stage-date">已专注 ${t.focusMin || 0} / 计划 ${t.plannedMin || 0} 分钟</div>
-          <button class="del" onclick="deleteTask('${k}','${t.id}')" title="删除">✕</button>
+      ${st.total === 0 ? `<div class="empty-tip">还没有学习任务,添加一个吧</div>` : groups.map(g => `
+        <div class="task-group">
+          <div class="task-group-head">
+            <span class="tg-name">${g.isUngrouped ? "🗂 未分组" : "📁 " + esc(g.stage.title)}</span>
+            <span class="tg-count">已完成 ${g.done}/${g.total}</span>
+          </div>
+          <div class="bar tg-bar"><i style="width:${g.pct}%; background:linear-gradient(90deg,var(--accent),var(--accent-2))"></i></div>
+          ${g.tasks.map(t => taskRowHTML(k, t)).join("")}
         </div>`).join("")}
       <div class="stage-add">
         <input type="text" id="taskName" placeholder="任务名称,如:完成线代第二章">
         <input type="number" id="taskMin" min="1" placeholder="计划分钟" style="width:92px;margin-top:0">
+        <select id="taskStage">
+          <option value="">未分组</option>
+          ${sub.stages.map(s => `<option value="${s.id}">${esc(s.title)}</option>`).join("")}
+        </select>
         <button class="btn primary small" onclick="addTask('${k}')">添加</button>
       </div>
     </div>`;
 }
+function taskRowHTML(k, t) {
+  return `
+    <div class="stage ${t.done ? "done" : ""}">
+      <input type="checkbox" ${t.done ? "checked" : ""} onchange="toggleTask('${k}','${t.id}')">
+      <div class="stage-title">${esc(t.name)}</div>
+      <div class="stage-date">已专注 ${t.focusMin || 0} / 计划 ${t.plannedMin || 0} 分钟</div>
+      <button class="del" onclick="deleteTask('${k}','${t.id}')" title="删除">✕</button>
+    </div>`;
+}
+function stageGroups(sub) {
+  const stageById = {};
+  sub.stages.forEach(s => stageById[s.id] = s);
+  const groups = [];
+  for (const s of sub.stages) {
+    const tasks = sub.tasks.filter(t => t.stageId === s.id);
+    if (!tasks.length) continue;
+    groups.push({ stage: s, tasks, total: tasks.length, done: tasks.filter(t => t.done).length, isUngrouped: false });
+  }
+  const ungrouped = sub.tasks.filter(t => !t.stageId || !stageById[t.stageId]);
+  if (ungrouped.length) {
+    groups.push({ stage: null, tasks: ungrouped, total: ungrouped.length, done: ungrouped.filter(t => t.done).length, isUngrouped: true });
+  }
+  groups.forEach(g => g.pct = Math.round(g.done / g.total * 100));
+  return groups;
+}
 function addTask(k) {
   const name = document.getElementById("taskName").value.trim();
   const min = parseInt(document.getElementById("taskMin").value || "0", 10);
+  const stageId = document.getElementById("taskStage").value;
   if (!name) { toast("请输入任务名称"); return; }
-  data.subjects[k].tasks.push({ id: uid(), name, plannedMin: Math.max(0, min), done: false, focusMin: 0 });
+  data.subjects[k].tasks.push({ id: uid(), name, plannedMin: Math.max(0, min), done: false, focusMin: 0, stageId: stageId || null });
   save();
   render();
   toast("已添加任务");
@@ -730,10 +772,11 @@ function toggleStage(k, id) {
   if (s) { s.done = !s.done; save(); render(); }
 }
 function deleteStage(k, id) {
+  data.subjects[k].tasks.forEach(t => { if (t.stageId === id) t.stageId = null; });
   data.subjects[k].stages = data.subjects[k].stages.filter(x => x.id !== id);
   save();
   render();
-  toast("已删除目标");
+  toast("已删除阶段,其任务已移至未分组");
 }
 function esc(s) {
   const d = document.createElement("div");
