@@ -185,6 +185,16 @@
     background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
     padding: 9px 10px; border-radius: 9px; font-family: inherit; font-size: 13px;
   }
+  .auto-arch { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin-bottom: 10px; cursor: pointer; }
+  .auto-arch input { accent-color: var(--accent); width: 14px; height: 14px; }
+  .archive-toggle {
+    margin-top: 4px; cursor: pointer; color: var(--muted); font-size: 12px;
+    background: none; border: none; font-family: inherit; padding: 4px 0;
+  }
+  .archive-toggle:hover { color: var(--text); }
+  .archived-list { margin-top: 6px; }
+  .archived-list .stage { opacity: .72; }
+  .archived-list .stage .stage-title { color: var(--muted); }
   .week-chart { display: flex; gap: 6px; align-items: flex-end; height: 56px; margin-top: 12px; }
   .week-chart .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .week-chart .col .v { width: 100%; border-radius: 5px 5px 0 0; background: linear-gradient(180deg, var(--accent), var(--accent-2)); min-height: 2px; }
@@ -337,7 +347,7 @@ function defaultData() {
 function freshData() {
   const d = defaultData();
   for (const k of Object.keys(SUBJECTS)) {
-    d.subjects[k] = { progress: 0, note: "", updated: "", stages: defaultStages(), tasks: [] };
+    d.subjects[k] = { progress: 0, note: "", updated: "", stages: defaultStages(), tasks: [], autoArchive: true };
   }
   return d;
 }
@@ -352,6 +362,7 @@ function load() {
         merged.subjects[k] = Object.assign(merged.subjects[k], d.subjects[k]);
         if (!Array.isArray(merged.subjects[k].stages)) merged.subjects[k].stages = defaultStages();
         if (!Array.isArray(merged.subjects[k].tasks)) merged.subjects[k].tasks = [];
+        if (typeof merged.subjects[k].autoArchive !== "boolean") merged.subjects[k].autoArchive = true;
       }
     }
     if (d.examDate) merged.examDate = d.examDate;
@@ -553,7 +564,7 @@ function setPreset(min) {
 }
 function remainingNow() {
   if (!timer.running || timer.startedAt == null) return timer.remaining;
-  return Math.max(0, timer.total - Math.floor((Date.now() - timer.startedAt) / 1000));
+  return Math.max(0, timer.remaining - Math.floor((Date.now() - timer.startedAt) / 1000));
 }
 function updateTimerUI() {
   const el = document.querySelector(".ring .time div");
@@ -645,6 +656,9 @@ function tasksHTML(k) {
         <span>进度 ${st.pct}%</span>
         <span>已完成 ${st.done}/${st.total} 个任务</span>
       </div>
+      <label class="auto-arch">
+        <input type="checkbox" ${sub.autoArchive ? "checked" : ""} onchange="setAutoArchive('${k}', this.checked)"> 完成任务后自动归档
+      </label>
       ${st.total === 0 ? `<div class="empty-tip">还没有学习任务,添加一个吧</div>` : groups.map(g => `
         <div class="task-group">
           <div class="task-group-head">
@@ -653,6 +667,11 @@ function tasksHTML(k) {
           </div>
           <div class="bar tg-bar"><i style="width:${g.pct}%; background:linear-gradient(90deg,var(--accent),var(--accent-2))"></i></div>
           ${g.tasks.map(t => taskRowHTML(k, t, sub.stages)).join("")}
+          ${g.archived.length ? `
+            <button class="archive-toggle" onclick="toggleArchived('${k}','${g.stage ? g.stage.id : "un"}')">📦 已归档 ${g.archived.length} 个(点击展开)</button>
+            <div class="archived-list" id="arch-${k}-${g.stage ? g.stage.id : "un"}" style="display:none">
+              ${g.archived.map(archivedRowHTML).join("")}
+            </div>` : ""}
         </div>`).join("")}
       <div class="stage-add">
         <input type="text" id="taskName" placeholder="任务名称,如:完成线代第二章">
@@ -675,7 +694,17 @@ function taskRowHTML(k, t, stages) {
         <option value="">未分组</option>
         ${stages.map(s => `<option value="${s.id}" ${t.stageId === s.id ? "selected" : ""}>${esc(s.title)}</option>`).join("")}
       </select>
+      ${t.done && !t.archived ? `<button class="del" style="color:var(--accent-2)" onclick="archiveTask('${k}','${t.id}')" title="归档">📦</button>` : ""}
       <button class="del" onclick="deleteTask('${k}','${t.id}')" title="删除">✕</button>
+    </div>`;
+}
+function archivedRowHTML(t) {
+  return `
+    <div class="stage">
+      <span style="width:18px;flex:none">✅</span>
+      <div class="stage-title">${esc(t.name)}</div>
+      <div class="stage-date">已专注 ${t.focusMin || 0} / 计划 ${t.plannedMin || 0} 分钟</div>
+      <span style="width:28px"></span>
     </div>`;
 }
 function stageGroups(sub) {
@@ -683,15 +712,19 @@ function stageGroups(sub) {
   sub.stages.forEach(s => stageById[s.id] = s);
   const groups = [];
   for (const s of sub.stages) {
-    const tasks = sub.tasks.filter(t => t.stageId === s.id);
-    if (!tasks.length) continue;
-    groups.push({ stage: s, tasks, total: tasks.length, done: tasks.filter(t => t.done).length, isUngrouped: false });
+    const all = sub.tasks.filter(t => t.stageId === s.id);
+    const active = all.filter(t => !t.archived);
+    const archived = all.filter(t => t.archived);
+    if (!active.length && !archived.length) continue;
+    groups.push({ stage: s, tasks: active, archived, total: all.length, done: all.filter(t => t.done).length, isUngrouped: false });
   }
   const ungrouped = sub.tasks.filter(t => !t.stageId || !stageById[t.stageId]);
-  if (ungrouped.length) {
-    groups.push({ stage: null, tasks: ungrouped, total: ungrouped.length, done: ungrouped.filter(t => t.done).length, isUngrouped: true });
+  const unActive = ungrouped.filter(t => !t.archived);
+  const unArchived = ungrouped.filter(t => t.archived);
+  if (unActive.length || unArchived.length) {
+    groups.push({ stage: null, tasks: unActive, archived: unArchived, total: ungrouped.length, done: ungrouped.filter(t => t.done).length, isUngrouped: true });
   }
-  groups.forEach(g => g.pct = Math.round(g.done / g.total * 100));
+  groups.forEach(g => g.pct = g.total ? Math.round(g.done / g.total * 100) : 0);
   return groups;
 }
 function addTask(k) {
@@ -706,13 +739,37 @@ function addTask(k) {
 }
 function toggleTask(k, id) {
   const t = data.subjects[k].tasks.find(x => x.id === id);
-  if (t) { t.done = !t.done; save(); render(); }
+  if (t) {
+    t.done = !t.done;
+    if (t.done && data.subjects[k].autoArchive) t.archived = true;
+    save();
+    render();
+  }
 }
 function deleteTask(k, id) {
   data.subjects[k].tasks = data.subjects[k].tasks.filter(x => x.id !== id);
   save();
   render();
   toast("已删除任务");
+}
+function setAutoArchive(k, v) {
+  data.subjects[k].autoArchive = v;
+  save();
+  render();
+}
+function archiveTask(k, id) {
+  const t = data.subjects[k].tasks.find(x => x.id === id);
+  if (t) {
+    t.done = true;
+    t.archived = true;
+    save();
+    render();
+    toast("已归档到阶段历史");
+  }
+}
+function toggleArchived(k, key) {
+  const el = document.getElementById("arch-" + k + "-" + key);
+  if (el) el.style.display = el.style.display === "none" ? "" : "none";
 }
 function moveTask(k, id, stageId) {
   const t = data.subjects[k].tasks.find(x => x.id === id);
