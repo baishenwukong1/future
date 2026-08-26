@@ -177,6 +177,10 @@
   .task-group-head .tg-name { font-weight: 700; }
   .task-group-head .tg-count { color: var(--muted); font-size: 12px; }
   .tg-bar { height: 6px; margin-bottom: 8px; }
+  .stage select.task-stage-pick {
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    padding: 5px 6px; border-radius: 8px; font-family: inherit; font-size: 12px; max-width: 112px;
+  }
   .stage-add select {
     background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
     padding: 9px 10px; border-radius: 9px; font-family: inherit; font-size: 13px;
@@ -648,7 +652,7 @@ function tasksHTML(k) {
             <span class="tg-count">已完成 ${g.done}/${g.total}</span>
           </div>
           <div class="bar tg-bar"><i style="width:${g.pct}%; background:linear-gradient(90deg,var(--accent),var(--accent-2))"></i></div>
-          ${g.tasks.map(t => taskRowHTML(k, t)).join("")}
+          ${g.tasks.map(t => taskRowHTML(k, t, sub.stages)).join("")}
         </div>`).join("")}
       <div class="stage-add">
         <input type="text" id="taskName" placeholder="任务名称,如:完成线代第二章">
@@ -661,12 +665,16 @@ function tasksHTML(k) {
       </div>
     </div>`;
 }
-function taskRowHTML(k, t) {
+function taskRowHTML(k, t, stages) {
   return `
     <div class="stage ${t.done ? "done" : ""}">
       <input type="checkbox" ${t.done ? "checked" : ""} onchange="toggleTask('${k}','${t.id}')">
       <div class="stage-title">${esc(t.name)}</div>
       <div class="stage-date">已专注 ${t.focusMin || 0} / 计划 ${t.plannedMin || 0} 分钟</div>
+      <select class="task-stage-pick" onchange="moveTask('${k}','${t.id}', this.value)">
+        <option value="">未分组</option>
+        ${stages.map(s => `<option value="${s.id}" ${t.stageId === s.id ? "selected" : ""}>${esc(s.title)}</option>`).join("")}
+      </select>
       <button class="del" onclick="deleteTask('${k}','${t.id}')" title="删除">✕</button>
     </div>`;
 }
@@ -705,6 +713,14 @@ function deleteTask(k, id) {
   save();
   render();
   toast("已删除任务");
+}
+function moveTask(k, id, stageId) {
+  const t = data.subjects[k].tasks.find(x => x.id === id);
+  if (t) {
+    t.stageId = stageId || null;
+    save();
+    render();
+  }
 }
 
 /* ---------- 专注记录到任务 ---------- */
