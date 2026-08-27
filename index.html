@@ -171,6 +171,11 @@
     width: 100%; background: var(--panel); border: 1px solid var(--line); color: var(--text);
     padding: 10px 12px; border-radius: 10px; font-size: 14px; font-family: inherit; margin-bottom: 16px;
   }
+  .modal-box input[type=text], .modal-box input[type=number], .modal-box input[type=date] {
+    width: 100%; background: var(--panel); border: 1px solid var(--line); color: var(--text);
+    padding: 10px 12px; border-radius: 10px; font-size: 14px; font-family: inherit;
+  }
+  .modal-box input + input { margin-top: 10px; }
   .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
   .task-group { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
   .task-group-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; margin-bottom: 6px; }
@@ -195,6 +200,13 @@
   .archived-list { margin-top: 6px; }
   .archived-list .stage { opacity: .72; }
   .archived-list .stage .stage-title { color: var(--muted); }
+  .mark { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; flex: none; }
+  .mark.green { background: var(--good); box-shadow: 0 0 6px var(--good); }
+  .mark.orange { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
+  .mark.red { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+  .date-green { color: var(--good); }
+  .date-orange { color: var(--warn); }
+  .date-red { color: var(--danger); }
   .week-chart { display: flex; gap: 6px; align-items: flex-end; height: 56px; margin-top: 12px; }
   .week-chart .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .week-chart .col .v { width: 100%; border-radius: 5px 5px 0 0; background: linear-gradient(180deg, var(--accent), var(--accent-2)); min-height: 2px; }
@@ -281,6 +293,19 @@
     <div class="modal-actions">
       <button class="btn ghost small" onclick="taskModalCancel()">不记录</button>
       <button class="btn primary small" onclick="taskModalConfirm()">记录</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="editModal">
+  <div class="modal-box">
+    <h3 id="editModalTitle">编辑</h3>
+    <input type="text" id="editName" placeholder="名称">
+    <input type="date" id="editDate" style="display:none">
+    <input type="number" id="editMin" min="0" placeholder="计划分钟" style="display:none">
+    <div class="modal-actions" style="margin-top:18px">
+      <button class="btn ghost small" onclick="editCancel()">取消</button>
+      <button class="btn primary small" onclick="editSave()">保存</button>
     </div>
   </div>
 </div>
@@ -572,6 +597,7 @@ function timerHTML(k) {
         </div>
         <div class="timer-ctrl">
           <button class="btn primary" onclick="toggleTimer()">${timer.running ? "⏸ 暂停" : "▶ 开始"}</button>
+          <button class="btn" onclick="completeEarly()">✓ 提前完成</button>
           <button class="btn" onclick="resetTimer()">↺ 重置</button>
         </div>
         <div class="today-focus">今日 ${SUBJECTS[k].name} 专注 <b>${subjectToday(k)}</b> 分钟</div>
@@ -602,12 +628,7 @@ function updateTimerUI(rem) {
   const r = Math.PI * 2 * 90;
   fg.setAttribute("stroke-dashoffset", r * (1 - rem / timer.total));
 }
-function finishTimer() {
-  clearInterval(timer.interval);
-  timer.interval = null;
-  timer.running = false;
-  timer.remaining = 0;
-  const min = Math.max(1, Math.round(timer.total / 60));
+function recordFocus(min) {
   data.focusLogs.push({ date: today(), subject: timer.subject, minutes: min, ts: Date.now() });
   save();
   beep();
@@ -615,6 +636,24 @@ function finishTimer() {
   if (!openTaskModal(timer.subject, min)) {
     toast("🎉 专注 " + min + " 分钟完成！已记录。");
   }
+}
+function finishTimer() {
+  clearInterval(timer.interval);
+  timer.interval = null;
+  timer.running = false;
+  timer.remaining = 0;
+  const min = Math.max(1, Math.round(timer.total / 60));
+  recordFocus(min);
+}
+function completeEarly() {
+  if (!timer.running) { toast("计时器没有在运行"); return; }
+  const elapsedMin = Math.max(1, Math.round((timer.total - remainingNow()) / 60));
+  if (!confirm("现在提前结束？本次专注约 " + elapsedMin + " 分钟，将按这个时长记录。")) return;
+  clearInterval(timer.interval);
+  timer.interval = null;
+  timer.running = false;
+  timer.remaining = 0;
+  recordFocus(elapsedMin);
 }
 function tick() {
   const rem = remainingNow();
@@ -723,13 +762,14 @@ function taskRowHTML(k, t, stages) {
   return `
     <div class="stage ${t.done ? "done" : ""}">
       <input type="checkbox" ${t.done ? "checked" : ""} onchange="toggleTask('${k}','${t.id}')">
-      <div class="stage-title">${esc(t.name)}</div>
+      <div class="stage-title">${taskMark(t)}${esc(t.name)}</div>
       <div class="stage-date">已专注 ${t.focusMin || 0} / 计划 ${t.plannedMin || 0} 分钟</div>
       <select class="task-stage-pick" onchange="moveTask('${k}','${t.id}', this.value)">
         <option value="">未分组</option>
         ${stages.map(s => `<option value="${s.id}" ${t.stageId === s.id ? "selected" : ""}>${esc(s.title)}</option>`).join("")}
       </select>
       ${t.done && !t.archived ? `<button class="del" style="color:var(--accent-2)" onclick="archiveTask('${k}','${t.id}')" title="归档">📦</button>` : ""}
+      <button class="del" style="color:var(--accent-2)" onclick="openTaskEdit('${k}','${t.id}')" title="编辑">✏️</button>
       <button class="del" onclick="deleteTask('${k}','${t.id}')" title="删除">✕</button>
     </div>`;
 }
@@ -737,10 +777,29 @@ function archivedRowHTML(t) {
   return `
     <div class="stage">
       <span style="width:18px;flex:none">✅</span>
-      <div class="stage-title">${esc(t.name)}</div>
+      <div class="stage-title">${taskMark(t)}${esc(t.name)}</div>
       <div class="stage-date">已专注 ${t.focusMin || 0} / 计划 ${t.plannedMin || 0} 分钟</div>
       <span style="width:28px"></span>
     </div>`;
+}
+function taskMark(t) {
+  if (!t.done || !t.plannedMin) return "";
+  const diff = (t.focusMin || 0) - t.plannedMin;
+  if (diff < -15) return '<span class="mark green"></span>';
+  if (diff > 15) return '<span class="mark red"></span>';
+  return '<span class="mark orange"></span>';
+}
+function stageMark(s) {
+  if (!s.done || !s.targetDate || !s.doneAt) return "";
+  if (s.doneAt < s.targetDate) return '<span class="mark green"></span>';
+  if (s.doneAt > s.targetDate) return '<span class="mark red"></span>';
+  return '<span class="mark orange"></span>';
+}
+function stageDateClass(s) {
+  if (!s.done || !s.targetDate || !s.doneAt) return "";
+  if (s.doneAt < s.targetDate) return "date-green";
+  if (s.doneAt > s.targetDate) return "date-red";
+  return "date-orange";
 }
 function stageGroups(sub) {
   const stageById = {};
@@ -846,6 +905,58 @@ function taskModalConfirm() {
   toast("已记录到任务");
 }
 
+/* ---------- 编辑阶段目标 / 任务 ---------- */
+let editSubject = null;
+let editType = null;
+let editId = null;
+function openStageEdit(k, id) {
+  const s = data.subjects[k].stages.find(x => x.id === id);
+  if (!s) return;
+  editSubject = k; editType = "stage"; editId = id;
+  document.getElementById("editModalTitle").textContent = "编辑阶段目标";
+  document.getElementById("editName").value = s.title;
+  document.getElementById("editDate").value = s.targetDate || "";
+  document.getElementById("editDate").style.display = "";
+  document.getElementById("editMin").style.display = "none";
+  document.getElementById("editModal").classList.add("show");
+}
+function openTaskEdit(k, id) {
+  const t = data.subjects[k].tasks.find(x => x.id === id);
+  if (!t) return;
+  editSubject = k; editType = "task"; editId = id;
+  document.getElementById("editModalTitle").textContent = "编辑任务";
+  document.getElementById("editName").value = t.name;
+  document.getElementById("editMin").value = t.plannedMin || "";
+  document.getElementById("editDate").style.display = "none";
+  document.getElementById("editMin").style.display = "";
+  document.getElementById("editModal").classList.add("show");
+}
+function editCancel() {
+  document.getElementById("editModal").classList.remove("show");
+  editSubject = editType = editId = null;
+}
+function editSave() {
+  const name = document.getElementById("editName").value.trim();
+  if (!name) { toast("名称不能为空"); return; }
+  if (editType === "stage") {
+    const s = data.subjects[editSubject].stages.find(x => x.id === editId);
+    if (s) {
+      s.title = name;
+      s.targetDate = document.getElementById("editDate").value;
+    }
+  } else if (editType === "task") {
+    const t = data.subjects[editSubject].tasks.find(x => x.id === editId);
+    if (t) {
+      t.name = name;
+      t.plannedMin = Math.max(0, parseInt(document.getElementById("editMin").value || "0", 10));
+    }
+  }
+  editCancel();
+  save();
+  render();
+  toast("已保存修改");
+}
+
 /* ---------- 阶段目标 ---------- */
 function stagesHTML(k) {
   const list = data.subjects[k].stages;
@@ -855,8 +966,9 @@ function stagesHTML(k) {
       ${list.length === 0 ? `<div class="empty-tip">还没有阶段目标,添加一个吧</div>` : list.map((s, i) => `
         <div class="stage ${s.done ? "done" : ""}">
           <input type="checkbox" ${s.done ? "checked" : ""} onchange="toggleStage('${k}', '${s.id}')">
-          <div class="stage-title">${esc(s.title)}</div>
-          <div class="stage-date">${s.targetDate || "未设日期"}</div>
+          <div class="stage-title">${stageMark(s)}${esc(s.title)}</div>
+          <div class="stage-date ${stageDateClass(s)}">${s.targetDate || "未设日期"}</div>
+          <button class="del" style="color:var(--accent-2)" onclick="openStageEdit('${k}','${s.id}')" title="编辑">✏️</button>
           <button class="del" onclick="deleteStage('${k}', '${s.id}')" title="删除">✕</button>
         </div>`).join("")}
       <div class="stage-add">
@@ -877,7 +989,12 @@ function addStage(k) {
 }
 function toggleStage(k, id) {
   const s = data.subjects[k].stages.find(x => x.id === id);
-  if (s) { s.done = !s.done; save(); render(); }
+  if (s) {
+    s.done = !s.done;
+    s.doneAt = s.done ? today() : null;
+    save();
+    render();
+  }
 }
 function deleteStage(k, id) {
   data.subjects[k].tasks.forEach(t => { if (t.stageId === id) t.stageId = null; });
