@@ -207,6 +207,19 @@
   .date-green { color: var(--good); }
   .date-orange { color: var(--warn); }
   .date-red { color: var(--danger); }
+  .tl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 16px; }
+  .timeline { position: relative; padding-left: 20px; }
+  .timeline::before { content: ""; position: absolute; left: 6px; top: 4px; bottom: 8px; width: 2px; background: var(--line); border-radius: 2px; }
+  .tl-node { position: relative; margin-bottom: 13px; }
+  .tl-node::before {
+    content: ""; position: absolute; left: -17px; top: 5px; width: 11px; height: 11px;
+    border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,.22);
+  }
+  .tl-node.done::before { background: var(--good); box-shadow: 0 0 0 3px rgba(52,211,153,.22); }
+  .tl-node.overdue::before { background: var(--danger); box-shadow: 0 0 0 3px rgba(248,113,113,.22); }
+  .tl-node.today::before { background: var(--warn); box-shadow: 0 0 0 3px rgba(251,191,36,.22); }
+  .tl-node .tl-title { font-size: 14px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .tl-node .tl-date { font-size: 12px; color: var(--muted); margin-top: 3px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .week-chart { display: flex; gap: 6px; align-items: flex-end; height: 56px; margin-top: 12px; }
   .week-chart .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .week-chart .col .v { width: 100%; border-radius: 5px 5px 0 0; background: linear-gradient(180deg, var(--accent), var(--accent-2)); min-height: 2px; }
@@ -377,7 +390,7 @@ function defaultData() {
 function freshData() {
   const d = defaultData();
   for (const k of Object.keys(SUBJECTS)) {
-    d.subjects[k] = { progress: 0, note: "", updated: "", stages: defaultStages(), tasks: [], autoArchive: true };
+    d.subjects[k] = { progress: 0, note: "", updated: "", stages: defaultStages(), tasks: [], autoArchive: true, milestones: [] };
   }
   return d;
 }
@@ -392,6 +405,7 @@ function load() {
         merged.subjects[k] = Object.assign(merged.subjects[k], d.subjects[k]);
         if (!Array.isArray(merged.subjects[k].stages)) merged.subjects[k].stages = defaultStages();
         if (!Array.isArray(merged.subjects[k].tasks)) merged.subjects[k].tasks = [];
+        if (!Array.isArray(merged.subjects[k].milestones)) merged.subjects[k].milestones = [];
         if (typeof merged.subjects[k].autoArchive !== "boolean") merged.subjects[k].autoArchive = true;
       }
     }
@@ -543,9 +557,83 @@ function dashboardHTML() {
           </div>`).join("")}
       </div>
     </div>
+    <h2 style="margin:26px 0 0; font-size:15px; letter-spacing:1px; display:flex; align-items:center; gap:8px">🗓 各科时间点目标</h2>
+    <div class="tl-grid">
+      ${Object.keys(SUBJECTS).map(k => `
+        <div class="card tl-card">
+          <h2><span class="dot" style="background:${SUBJECTS[k].color}"></span>${SUBJECTS[k].icon} ${SUBJECTS[k].name} 时间轴</h2>
+          ${timelineHTML(k)}
+        </div>`).join("")}
+    </div>
     <div class="subject-grid">
       ${Object.keys(SUBJECTS).map(cardHTML).join("")}
     </div>`;
+}
+function timelineHTML(k) {
+  const sub = data.subjects[k];
+  const nodes = [];
+  sub.stages.forEach(s => { if (s.targetDate) nodes.push({ id: s.id, name: s.title, date: s.targetDate, done: !!s.done, kind: "stage" }); });
+  sub.milestones.forEach(m => nodes.push({ id: m.id, name: m.name, date: m.date, done: false, kind: "ms" }));
+  nodes.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  return `
+    <div class="timeline">
+      ${nodes.length === 0 ? `<div class="empty-tip">暂无时间点,添加一个吧</div>` : nodes.map(n => {
+        const st = tlState(n);
+        return `
+        <div class="tl-node ${st.cls}">
+          <div class="tl-title">${n.kind === "stage" ? "📁" : "📌"} ${esc(n.name)} ${n.done ? `<span class="date-green">✓ 已完成</span>` : ""}</div>
+          <div class="tl-date">
+            <span>${n.date} · ${st.text}</span>
+            ${n.kind === "ms" ? `
+              <button class="del" style="color:var(--accent-2)" onclick="openMilestoneEdit('${k}','${n.id}')" title="编辑">✏️</button>
+              <button class="del" onclick="deleteMilestone('${k}','${n.id}')" title="删除">✕</button>` : ""}
+          </div>
+        </div>`;
+      }).join("")}
+    </div>
+    <div class="stage-add" style="margin-top:14px">
+      <input type="text" id="msName-${k}" placeholder="时间点名称,如:强化阶段截止">
+      <input type="date" id="msDate-${k}">
+      <button class="btn primary small" onclick="addMilestone('${k}')">添加</button>
+    </div>`;
+}
+function tlState(n) {
+  if (n.done) return { cls: "done", text: "已完成" };
+  const t = today();
+  if (n.date === t) return { cls: "today", text: "就是今天" };
+  if (n.date < t) {
+    const days = Math.round((new Date(t) - new Date(n.date)) / 86400000);
+    return { cls: "overdue", text: "已逾期 " + days + " 天" };
+  }
+  const days = Math.round((new Date(n.date) - new Date(t)) / 86400000);
+  return { cls: "", text: "还有 " + days + " 天" };
+}
+function addMilestone(k) {
+  const name = document.getElementById("msName-" + k).value.trim();
+  const date = document.getElementById("msDate-" + k).value;
+  if (!name) { toast("请输入时间点名称"); return; }
+  if (!date) { toast("请选择日期"); return; }
+  data.subjects[k].milestones.push({ id: uid(), name, date });
+  save();
+  render();
+  toast("已添加时间点");
+}
+function deleteMilestone(k, id) {
+  data.subjects[k].milestones = data.subjects[k].milestones.filter(m => m.id !== id);
+  save();
+  render();
+  toast("已删除时间点");
+}
+function openMilestoneEdit(k, id) {
+  const m = data.subjects[k].milestones.find(x => x.id === id);
+  if (!m) return;
+  editSubject = k; editType = "milestone"; editId = id;
+  document.getElementById("editModalTitle").textContent = "编辑时间点";
+  document.getElementById("editName").value = m.name;
+  document.getElementById("editDate").value = m.date;
+  document.getElementById("editDate").style.display = "";
+  document.getElementById("editMin").style.display = "none";
+  document.getElementById("editModal").classList.add("show");
 }
 function weekFocus() {
   const out = [];
@@ -949,6 +1037,12 @@ function editSave() {
     if (t) {
       t.name = name;
       t.plannedMin = Math.max(0, parseInt(document.getElementById("editMin").value || "0", 10));
+    }
+  } else if (editType === "milestone") {
+    const m = data.subjects[editSubject].milestones.find(x => x.id === editId);
+    if (m) {
+      m.name = name;
+      m.date = document.getElementById("editDate").value;
     }
   }
   editCancel();
