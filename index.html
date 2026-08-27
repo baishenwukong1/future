@@ -521,9 +521,10 @@ const timer = {
 };
 function timerHTML(k) {
   const r = Math.PI * 2 * 90;
-  const frac = timer.total ? timer.remaining / timer.total : 0;
-  const mm = String(Math.floor(timer.remaining / 60)).padStart(2, "0");
-  const ss = String(timer.remaining % 60).padStart(2, "0");
+  const rem = timer.running ? remainingNow() : timer.remaining;
+  const frac = timer.total ? rem / timer.total : 0;
+  const mm = String(Math.floor(rem / 60)).padStart(2, "0");
+  const ss = String(rem % 60).padStart(2, "0");
   const presets = [25, 45, 60, 90];
   return `
     <div class="card">
@@ -566,20 +567,21 @@ function remainingNow() {
   if (!timer.running || timer.startedAt == null) return timer.remaining;
   return Math.max(0, timer.remaining - Math.floor((Date.now() - timer.startedAt) / 1000));
 }
-function updateTimerUI() {
+function updateTimerUI(rem) {
   const el = document.querySelector(".ring .time div");
   const fg = document.querySelector(".ring-fg");
   if (!el || !fg) return;
-  const mm = String(Math.floor(timer.remaining / 60)).padStart(2, "0");
-  const ss = String(timer.remaining % 60).padStart(2, "0");
+  const mm = String(Math.floor(rem / 60)).padStart(2, "0");
+  const ss = String(rem % 60).padStart(2, "0");
   el.textContent = mm + ":" + ss;
   const r = Math.PI * 2 * 90;
-  fg.setAttribute("stroke-dashoffset", r * (1 - timer.remaining / timer.total));
+  fg.setAttribute("stroke-dashoffset", r * (1 - rem / timer.total));
 }
 function finishTimer() {
   clearInterval(timer.interval);
   timer.interval = null;
   timer.running = false;
+  timer.remaining = 0;
   const min = Math.max(1, Math.round(timer.total / 60));
   data.focusLogs.push({ date: today(), subject: timer.subject, minutes: min, ts: Date.now() });
   save();
@@ -590,9 +592,9 @@ function finishTimer() {
   }
 }
 function tick() {
-  timer.remaining = remainingNow();
-  updateTimerUI();
-  if (timer.remaining <= 0) finishTimer();
+  const rem = remainingNow();
+  updateTimerUI(rem);
+  if (rem <= 0) finishTimer();
 }
 function toggleTimer() {
   if (timer.running) {
