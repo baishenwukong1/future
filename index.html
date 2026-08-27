@@ -264,9 +264,10 @@
   <footer>
     <div class="actions">
       <button class="btn ghost small" onclick="goHome()">⌂ 回到首页</button>
-      <button class="btn ghost small danger" onclick="if(confirm('确定清空所有记录数据吗？此操作不可恢复。')) resetAll()">重置全部数据</button>
+      <button class="btn ghost small" onclick="undo()">↩ 撤销</button>
+      <button class="btn ghost small danger" onclick="if(confirm('确定清空所有记录数据吗？可用「撤销」恢复。')) resetAll()">重置全部数据</button>
     </div>
-    数据保存在浏览器本地 · 点击右上角「导出数据」可随时备份
+    数据保存在浏览器本地 · 可撤销最近 20 步操作(Ctrl/⌘ + Z)
   </footer>
 </div>
 
@@ -322,6 +323,10 @@ const SUBJECTS = {
 };
 
 let data = load();
+let lastSaved = null;
+let undoStack = [];
+const UNDO_MAX = 20;
+lastSaved = JSON.stringify(data);
 
 /* ---------- 数据 ---------- */
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
@@ -373,7 +378,27 @@ function load() {
   }
 }
 function save() {
-  localStorage.setItem(LS_KEY, JSON.stringify(data));
+  const next = JSON.stringify(data);
+  if (lastSaved !== null && lastSaved !== next) {
+    undoStack.push(lastSaved);
+    if (undoStack.length > UNDO_MAX) undoStack.shift();
+  }
+  lastSaved = next;
+  localStorage.setItem(LS_KEY, next);
+}
+function undo() {
+  if (!undoStack.length) { toast("没有可撤销的操作"); return; }
+  const prev = undoStack.pop();
+  try {
+    data = JSON.parse(prev);
+  } catch (e) {
+    toast("撤销失败");
+    return;
+  }
+  lastSaved = prev;
+  localStorage.setItem(LS_KEY, prev);
+  render();
+  toast("已撤销上一步");
 }
 function toast(msg) {
   const t = document.getElementById("toast");
@@ -620,6 +645,14 @@ function resetTimer() {
 }
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden && timer.running) tick();
+});
+document.addEventListener("keydown", (e) => {
+  const tag = (e.target && e.target.tagName) || "";
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
+    e.preventDefault();
+    undo();
+  }
 });
 function subjectToday(k) {
   return data.focusLogs.filter(l => l.date === today() && l.subject === k).reduce((a, b) => a + b.minutes, 0);
