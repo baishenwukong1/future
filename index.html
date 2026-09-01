@@ -179,6 +179,12 @@
     width: 100%; background: var(--panel); border: 1px solid var(--line); color: var(--text);
     padding: 10px 12px; border-radius: 10px; font-size: 14px; font-family: inherit; margin-bottom: 16px;
   }
+  .task-pick-list { max-height: 220px; overflow-y: auto; margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .task-pick-row { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; cursor: pointer; font-size: 13px; }
+  .task-pick-row.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .task-pick-row .pick-name { flex: 1; word-break: break-all; }
+  .pick-del { border: none; background: none; color: var(--danger); cursor: pointer; font-size: 16px; padding: 0 6px; border-radius: 6px; line-height: 1.4; }
+  .pick-del:hover { background: rgba(248,113,113,.15); }
   .modal-box input[type=text], .modal-box input[type=number], .modal-box input[type=date] {
     width: 100%; background: var(--panel); border: 1px solid var(--line); color: var(--text);
     padding: 10px 12px; border-radius: 10px; font-size: 14px; font-family: inherit;
@@ -330,7 +336,7 @@
   <div class="modal-box">
     <h3>🎉 专注完成!</h3>
     <p id="taskModalText">这次专注要记录到哪个任务?</p>
-    <select id="taskSelect"></select>
+    <div class="task-pick-list" id="taskPickList"></div>
     <div class="modal-actions">
       <button class="btn ghost small" onclick="taskModalCancel()">不记录</button>
       <button class="btn primary small" onclick="taskModalConfirm()">记录</button>
@@ -1234,25 +1240,52 @@ function moveTask(k, id, val) {
 /* ---------- 专注记录到任务 ---------- */
 let taskModalSubject = null;
 let taskModalMin = 0;
+let taskModalSelected = null;
 function openTaskModal(k, minutes) {
   const list = data.subjects[k].tasks;
   if (!list.length) return false;
   taskModalSubject = k;
   taskModalMin = minutes;
-  const sel = document.getElementById("taskSelect");
-  sel.innerHTML = list.map(t => `<option value="${t.id}">${esc(t.name)}${t.done ? " ✓" : ""}</option>`).join("");
+  taskModalSelected = list[0].id;
   document.getElementById("taskModalText").textContent = "这次专注 " + minutes + " 分钟,要记录到哪个任务?";
+  renderTaskPickList();
   document.getElementById("taskModal").classList.add("show");
   return true;
+}
+function renderTaskPickList() {
+  const list = data.subjects[taskModalSubject].tasks;
+  const el = document.getElementById("taskPickList");
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-tip">这个科目已经没有任务了,可只记录专注时长</div>';
+    taskModalSelected = null;
+    return;
+  }
+  if (!list.some(t => t.id === taskModalSelected)) taskModalSelected = list[0].id;
+  el.innerHTML = list.map(t => `
+    <div class="task-pick-row ${t.id === taskModalSelected ? "sel" : ""}" onclick="pickTask('${t.id}')">
+      <span class="pick-name">${esc(t.name)}${t.done ? " ✓" : ""}</span>
+      <button class="pick-del" onclick="event.stopPropagation();deleteTaskFromModal('${taskModalSubject}','${t.id}')" title="删除此任务">−</button>
+    </div>`).join("");
+}
+function pickTask(id) {
+  taskModalSelected = id;
+  renderTaskPickList();
+}
+function deleteTaskFromModal(k, id) {
+  data.subjects[k].tasks = data.subjects[k].tasks.filter(x => x.id !== id);
+  save();
+  renderTaskPickList();
+  toast("已删除任务");
 }
 function taskModalClose() {
   document.getElementById("taskModal").classList.remove("show");
   taskModalSubject = null;
+  taskModalSelected = null;
 }
 function taskModalCancel() { taskModalClose(); }
 function taskModalConfirm() {
-  const id = document.getElementById("taskSelect").value;
-  const t = data.subjects[taskModalSubject].tasks.find(x => x.id === id);
+  if (!taskModalSelected) { toast("请先选择一个任务"); return; }
+  const t = data.subjects[taskModalSubject].tasks.find(x => x.id === taskModalSelected);
   if (t) {
     t.focusMin = (t.focusMin || 0) + taskModalMin;
     save();
