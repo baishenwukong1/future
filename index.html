@@ -47,18 +47,18 @@
   @media (hover: none) {
     .bg-overlay { opacity: 1; }
   }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 20px 80px; }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 14px 20px 24px; }
   .wrap, .toast { position: relative; z-index: 2; }
 
-  header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 26px; flex-wrap: wrap; }
+  header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
   .brand { display: flex; align-items: center; gap: 12px; }
   .brand .logo {
-    width: 42px; height: 42px; border-radius: 12px; flex: none;
+    width: 36px; height: 36px; border-radius: 11px; flex: none;
     background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    display: flex; align-items: center; justify-content: center; font-size: 22px;
+    display: flex; align-items: center; justify-content: center; font-size: 19px;
     box-shadow: 0 6px 18px rgba(99,102,241,.4);
   }
-  .brand h1 { font-size: 20px; font-weight: 700; letter-spacing: 1px; }
+  .brand h1 { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
   .brand p { font-size: 12px; color: var(--muted); margin-top: 2px; }
   .top-actions { display: flex; gap: 8px; }
 
@@ -76,46 +76,54 @@
   .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
 
   .card {
-    background: linear-gradient(180deg, var(--panel), var(--panel-2));
-    border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
-    padding: 22px;
+    background: linear-gradient(180deg, rgba(24,34,58,.50), rgba(16,24,44,.40));
+    border: 1px solid rgba(255,255,255,.13); border-radius: var(--radius);
+    box-shadow: 0 8px 24px rgba(0,0,0,.28); padding: 18px;
+    backdrop-filter: blur(14px) saturate(1.3);
+    -webkit-backdrop-filter: blur(14px) saturate(1.3);
   }
   .card h2 { font-size: 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
   .card h2 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
 
   /* 倒计时 */
-  .countdown { text-align: center; padding: 34px 22px 30px; position: relative; overflow: hidden; }
+  .countdown { text-align: center; padding: 14px 22px 12px; position: relative; overflow: hidden; }
   .countdown::before {
     content: ""; position: absolute; inset: 0;
     background: linear-gradient(120deg, rgba(99,102,241,.12), transparent 45%, rgba(34,211,238,.1));
     pointer-events: none;
   }
   .countdown .label { color: var(--muted); font-size: 13px; letter-spacing: 3px; }
-  .countdown .big { font-size: clamp(48px, 9vw, 84px); font-weight: 800; line-height: 1.15;
+  .countdown .big { font-size: clamp(38px, 6vw, 60px); font-weight: 800; line-height: 1.15;
     background: linear-gradient(120deg, #a5b4fc, var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent;
     font-variant-numeric: tabular-nums;
   }
   .countdown .big small { font-size: .4em; font-weight: 600; }
-  .countdown .detail { margin-top: 8px; font-size: 13px; color: var(--muted); }
-  .countdown .date-edit { margin-top: 14px; display: inline-flex; gap: 8px; align-items: center; }
+  .countdown .detail { margin-top: 4px; font-size: 12px; color: var(--muted); }
+  .countdown .quote { margin-top: 6px; font-size: 13px; color: var(--accent-2); opacity: .95; }
+  .countdown .date-edit { margin-top: 6px; display: inline-flex; gap: 8px; align-items: center; }
   .countdown input[type=date] {
     background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
     padding: 7px 12px; border-radius: 9px; font-size: 13px; font-family: inherit;
   }
 
   /* 首页科目卡片 */
-  .subject-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); gap: 16px; margin-top: 20px; }
+  .subject-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+  @media (max-width: 980px) { .subject-strip { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .subject-strip { grid-template-columns: 1fr; } }
   .subject-card {
-    position: relative; border-radius: var(--radius); padding: 22px; cursor: pointer; overflow: hidden;
-    background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow);
+    position: relative; border-radius: var(--radius); padding: 14px; cursor: pointer; overflow: hidden;
+    background: linear-gradient(180deg, rgba(24,34,58,.50), rgba(16,24,44,.40));
+    border: 1px solid rgba(255,255,255,.13); box-shadow: 0 8px 24px rgba(0,0,0,.28);
+    backdrop-filter: blur(14px) saturate(1.3);
+    -webkit-backdrop-filter: blur(14px) saturate(1.3);
     transition: .2s; display: flex; flex-direction: column; gap: 12px;
   }
   .subject-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--sc, var(--accent)); }
   .subject-card:hover { transform: translateY(-4px); border-color: var(--sc, var(--accent)); box-shadow: 0 16px 34px rgba(0,0,0,.45); }
-  .subject-card .icon { font-size: 30px; }
-  .subject-card .name { font-size: 18px; font-weight: 700; }
-  .subject-card .meta { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
-  .subject-card .go { margin-top: auto; font-size: 13px; color: var(--sc, var(--accent)); display: flex; align-items: center; gap: 4px; }
+  .subject-card .icon { font-size: 24px; }
+  .subject-card .name { font-size: 15px; font-weight: 700; }
+  .subject-card .meta { font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; }
+  .subject-card .go { margin-top: auto; font-size: 12px; color: var(--sc, var(--accent)); display: flex; align-items: center; gap: 4px; }
   .bar { height: 8px; background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden; }
   .bar i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--sc, var(--accent)), var(--accent-2)); transition: width .4s; }
 
@@ -207,12 +215,13 @@
   .date-green { color: var(--good); }
   .date-orange { color: var(--warn); }
   .date-red { color: var(--danger); }
-  .tl-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 16px; }
-  @media (max-width: 980px) { .tl-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 560px) { .tl-grid { grid-template-columns: 1fr; } }
+  .tl-rows { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+  .tl-row { padding: 10px 14px; }
+  .tl-row-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+  .tl-row-name { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
   .timeline { position: relative; padding-top: 22px; display: flex; align-items: stretch; overflow-x: auto; }
   .timeline::before { content: ""; position: absolute; top: 11px; left: 14px; right: 14px; height: 2px; background: var(--line); border-radius: 2px; }
-  .tl-node { position: relative; flex: 1 0 86px; min-width: 86px; text-align: center; padding: 0 6px 4px; }
+  .tl-node { position: relative; flex: 1 0 72px; min-width: 72px; text-align: center; padding: 0 6px 4px; }
   .tl-node::before {
     content: ""; position: absolute; top: -16px; left: 50%; transform: translateX(-50%); width: 11px; height: 11px;
     border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,.22);
@@ -220,8 +229,8 @@
   .tl-node.done::before { background: var(--good); box-shadow: 0 0 0 3px rgba(52,211,153,.22); }
   .tl-node.overdue::before { background: var(--danger); box-shadow: 0 0 0 3px rgba(248,113,113,.22); }
   .tl-node.today::before { background: var(--warn); box-shadow: 0 0 0 3px rgba(251,191,36,.22); }
-  .tl-node .tl-title { font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1.35; }
-  .tl-node .tl-date { font-size: 11px; color: var(--muted); margin-top: 3px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .tl-node .tl-title { font-size: 11.5px; display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1.3; }
+  .tl-node .tl-date { font-size: 10.5px; color: var(--muted); margin-top: 3px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 
   /* 进度 */
   .progress-row { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
@@ -356,6 +365,74 @@ const SUBJECTS = {
     ]
   }
 };
+const QUOTES = [
+  "每一天的努力，都是在为未来的自己铺路。",
+  "考研是一场修行，坚持到最后的人，运气都不会太差。",
+  "现在的每一分钟，都算数。",
+  "不要怕走得慢，只怕停下来。",
+  "星光不问赶路人，时光不负有心人。",
+  "你背过的每一个单词，都在悄悄为你加分。",
+  "别让「明天再说」成为你最大的对手。",
+  "上岸的路，是自己一步步走出来的。",
+  "把书读进去，把心静下来。",
+  "今天多学一点，考场就多一分底气。",
+  "所有的优秀，都是长期主义的胜利。",
+  "认真的人，自带光芒。",
+  "你现在流下的汗水，会成为录取通知书上的墨迹。",
+  "坚持不是永不动摇，而是犹豫着、退缩着、心猿意马着，但还在往前走。",
+  "奋斗的青春最美丽，拼搏的考研最无悔。",
+  "与其焦虑未来，不如做好今天。",
+  "每多掌握一个知识点，就离梦想更近一步。",
+  "天道酬勤，功不唐捐。",
+  "最怕你一生碌碌无为，还安慰自己平凡可贵。",
+  "现在的你，正在为未来的自己点赞。",
+  "读书，是世界上门槛最低的高贵。",
+  "今天的学习，是明天自信的底气。",
+  "半山腰太挤，我们要去山顶看看。",
+  "越努力，越幸运。",
+  "忍住寂寞，才配得上繁华。",
+  "你的坚持，终将美好。",
+  "没有白费的努力，也没有碰巧的成功。",
+  "静水流深，厚积薄发。",
+  "再坚持一下，终点就在前方。",
+  "把简单的事做好，就是不简单。",
+  "行动是治愈焦虑的良药。",
+  "将来的你，一定会感谢现在拼命的自己。",
+  "书山有路勤为径，学海无涯苦作舟。",
+  "每一次想放弃的时候，都是蜕变的前奏。",
+  "乾坤未定，你我皆是黑马。",
+  "心中有光，脚下有路。",
+  "自律给我自由，努力给我未来。",
+  "不畏将来，不念过往，专注当下。",
+  "成功的路上并不拥挤，因为坚持的人不多。",
+  "今天要比昨天更努力一点点。",
+  "扛得住压力，才配得上梦想。",
+  "考得上！来得及！你可以！",
+  "人生没有白走的路，每一步都算数。",
+  "磨刀不误砍柴工，基础打牢万事通。",
+  "你只管努力，剩下的交给时间。",
+  "梦想不会发光，发光的是追梦的你。",
+  "日夜兼程，终抵彼岸。",
+  "学习贵在坚持，成在积累。",
+  "心有猛虎，细嗅蔷薇。",
+  "愿你所求皆如愿，所行化坦途。",
+  "用今天的汗水，换明天的从容。",
+  "道阻且长，行则将至。",
+  "再长的路，一步步也能走完。",
+  "专注，是最高级的自律。",
+  "你在三四月做的事，八九月自有答案。",
+  "全力以赴，不留遗憾。",
+  "熬过无人问津的日子，才有诗和远方。",
+  "只要不放弃，你就还没有输。",
+  "加油！准研究生！",
+  "每一天都是一个新的开始，珍惜当下，把握今天。"
+];
+function dailyQuote() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  const doy = Math.floor((now - start) / 86400000);
+  return QUOTES[doy % QUOTES.length];
+}
 
 let data = load();
 let lastSaved = null;
@@ -500,6 +577,7 @@ function countdownHTML() {
       <div class="label">距 2027 考研还有</div>
       <div class="big">${days}<small> 天</small></div>
       <div class="detail">${pad(hours)} : ${pad(mins)} : ${pad(secs)}</div>
+      <div class="quote">💪 ${esc(dailyQuote())}</div>
       <div class="date-edit">
         <input type="date" value="${data.examDate}" onchange="setExamDate(this.value)">
         <button class="btn small" onclick="alert('默认考试日期为 2026-12-19(2027 考研初试预计时间),可在日期框里修改。')">考试日期</button>
@@ -519,9 +597,7 @@ function cardHTML(k) {
   const s = SUBJECTS[k];
   const sub = data.subjects[k];
   const done = sub.stages.filter(x => x.done).length;
-  const next = sub.stages.find(x => !x.done);
   const st = taskStats(sub);
-  const totalFocus = data.focusLogs.filter(l => l.subject === k).reduce((a, b) => a + b.minutes, 0);
   return `
     <div class="subject-card" style="--sc:${s.color}" onclick="location.hash='#/${k}'">
       <div class="icon">${s.icon}</div>
@@ -531,26 +607,27 @@ function cardHTML(k) {
         <span>任务 ${st.done}/${st.total}</span>
         <span>阶段 ${done}/${sub.stages.length}</span>
       </div>
-      <div class="meta" style="margin-top:-6px">
-        <span>${next ? "下一目标：" + next.title : "目标全部完成 🎉"}</span>
-        <span>专注 ${totalFocus} 分钟</span>
-      </div>
-      <div class="go">进入 ${s.short} 统筹 <span>→</span></div>
     </div>`;
 }
 function dashboardHTML() {
   return `
     ${countdownHTML()}
-    <h2 style="margin:26px 0 0; font-size:15px; letter-spacing:1px; display:flex; align-items:center; gap:8px">🗓 各科时间点目标</h2>
-    <div class="tl-grid">
-      ${Object.keys(SUBJECTS).map(k => `
-        <div class="card tl-card">
-          <h2><span class="dot" style="background:${SUBJECTS[k].color}"></span>${SUBJECTS[k].icon} ${SUBJECTS[k].name} 时间轴</h2>
-          ${timelineHTML(k)}
-        </div>`).join("")}
+    <div class="tl-rows">
+      ${Object.keys(SUBJECTS).map(timelineRowHTML).join("")}
     </div>
-    <div class="subject-grid">
+    <div class="subject-strip">
       ${Object.keys(SUBJECTS).map(cardHTML).join("")}
+    </div>`;
+}
+function timelineRowHTML(k) {
+  const s = SUBJECTS[k];
+  return `
+    <div class="card tl-row">
+      <div class="tl-row-head">
+        <span class="tl-row-name">${s.icon} ${s.name}</span>
+        <button class="btn small" onclick="openMilestoneAdd('${k}')">＋ 添加</button>
+      </div>
+      ${timelineHTML(k)}
     </div>`;
 }
 function timelineHTML(k) {
@@ -574,11 +651,6 @@ function timelineHTML(k) {
           </div>
         </div>`;
       }).join("")}
-    </div>
-    <div class="stage-add" style="margin-top:14px">
-      <input type="text" id="msName-${k}" placeholder="时间点名称,如:强化阶段截止">
-      <input type="date" id="msDate-${k}">
-      <button class="btn primary small" onclick="addMilestone('${k}')">添加</button>
     </div>`;
 }
 function tlState(n) {
@@ -591,16 +663,6 @@ function tlState(n) {
   }
   const days = Math.round((new Date(n.date) - new Date(t)) / 86400000);
   return { cls: "", text: "还有 " + days + " 天" };
-}
-function addMilestone(k) {
-  const name = document.getElementById("msName-" + k).value.trim();
-  const date = document.getElementById("msDate-" + k).value;
-  if (!name) { toast("请输入时间点名称"); return; }
-  if (!date) { toast("请选择日期"); return; }
-  data.subjects[k].milestones.push({ id: uid(), name, date });
-  save();
-  render();
-  toast("已添加时间点");
 }
 function deleteMilestone(k, id) {
   data.subjects[k].milestones = data.subjects[k].milestones.filter(m => m.id !== id);
@@ -615,6 +677,15 @@ function openMilestoneEdit(k, id) {
   document.getElementById("editModalTitle").textContent = "编辑时间点";
   document.getElementById("editName").value = m.name;
   document.getElementById("editDate").value = m.date;
+  document.getElementById("editDate").style.display = "";
+  document.getElementById("editMin").style.display = "none";
+  document.getElementById("editModal").classList.add("show");
+}
+function openMilestoneAdd(k) {
+  editSubject = k; editType = "milestone-new"; editId = null;
+  document.getElementById("editModalTitle").textContent = "添加时间点";
+  document.getElementById("editName").value = "";
+  document.getElementById("editDate").value = "";
   document.getElementById("editDate").style.display = "";
   document.getElementById("editMin").style.display = "none";
   document.getElementById("editModal").classList.add("show");
@@ -1016,6 +1087,10 @@ function editSave() {
       m.name = name;
       m.date = document.getElementById("editDate").value;
     }
+  } else if (editType === "milestone-new") {
+    const date = document.getElementById("editDate").value;
+    if (!date) { toast("请选择日期"); return; }
+    data.subjects[editSubject].milestones.push({ id: uid(), name, date });
   }
   editCancel();
   save();
