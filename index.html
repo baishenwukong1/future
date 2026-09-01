@@ -282,6 +282,7 @@
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .hidden { display: none !important; }
+  .hide { display: none !important; }
 </style>
 </head>
 <body>
@@ -336,6 +337,7 @@
     <input type="text" id="editName" placeholder="名称">
     <input type="date" id="editDate" style="display:none">
     <input type="number" id="editMin" min="0" placeholder="计划分钟" style="display:none">
+    <input type="number" id="editFocus" min="0" placeholder="已专注分钟" style="display:none">
     <div class="modal-actions" style="margin-top:18px">
       <button class="btn ghost small" onclick="editCancel()">取消</button>
       <button class="btn primary small" onclick="editSave()">保存</button>
@@ -711,6 +713,7 @@ function openMilestoneEdit(k, id) {
   document.getElementById("editDate").value = m.date;
   document.getElementById("editDate").style.display = "";
   document.getElementById("editMin").style.display = "none";
+  document.getElementById("editFocus").style.display = "none";
   document.getElementById("editModal").classList.add("show");
 }
 function openMilestoneAdd(k) {
@@ -720,6 +723,7 @@ function openMilestoneAdd(k) {
   document.getElementById("editDate").value = "";
   document.getElementById("editDate").style.display = "";
   document.getElementById("editMin").style.display = "none";
+  document.getElementById("editFocus").style.display = "none";
   document.getElementById("editModal").classList.add("show");
 }
 /* ---------- 计时器 ---------- */
@@ -914,7 +918,7 @@ function treeCardHTML(k) {
 function stageTreeHTML(k, stage) {
   if (stage.done) return "";
   const sub = data.subjects[k];
-  const expanded = !collapsedStages.has(stage.id);
+  const expanded = expandedStages.has(stage.id);
   const activeNodes = stage.tree.filter(n => !n.done);
   const rootTasks = sub.tasks.filter(t => t.stageId === stage.id && !t.done && !t.nodeId);
   const hasMore = activeNodes.length > 0 || rootTasks.length > 0;
@@ -939,7 +943,7 @@ function stageTreeHTML(k, stage) {
 function nodeHTML(k, stage, node, depth) {
   if (node.done) return "";
   const sub = data.subjects[k];
-  const expanded = !collapsedNodes.has(node.id);
+  const expanded = expandedNodes.has(node.id);
   const tasks = sub.tasks.filter(t => t.nodeId === node.id && !t.done);
   const activeChildren = node.children.filter(c => !c.done);
   const hasMore = activeChildren.length > 0 || tasks.length > 0;
@@ -1092,14 +1096,14 @@ function collectNodeIds(node) {
   (node.children || []).forEach(c => ids = ids.concat(collectNodeIds(c)));
   return ids;
 }
-let collapsedStages = new Set();
-let collapsedNodes = new Set();
+let expandedStages = new Set();
+let expandedNodes = new Set();
 function toggleExpandStage(k, id) {
-  collapsedStages.has(id) ? collapsedStages.delete(id) : collapsedStages.add(id);
+  expandedStages.has(id) ? expandedStages.delete(id) : expandedStages.add(id);
   render();
 }
 function toggleExpandNode(stageId, nodeId) {
-  collapsedNodes.has(nodeId) ? collapsedNodes.delete(nodeId) : collapsedNodes.add(nodeId);
+  expandedNodes.has(nodeId) ? expandedNodes.delete(nodeId) : expandedNodes.add(nodeId);
   render();
 }
 function toggleNode(k, stageId, nodeId) {
@@ -1120,6 +1124,7 @@ function deleteNode(k, stageId, nodeId) {
   if (!n) return;
   const ids = collectNodeIds(n);
   sub.tasks.forEach(t => { if (ids.indexOf(t.nodeId) !== -1) t.nodeId = null; });
+  ids.forEach(id => expandedNodes.delete(id));
   const prune = nodes => nodes.filter(x => x.id !== nodeId).map(x => { x.children = prune(x.children || []); return x; });
   s.tree = prune(s.tree);
   save();
@@ -1214,6 +1219,7 @@ function openStageEdit(k, id) {
   document.getElementById("editDate").value = s.targetDate || "";
   document.getElementById("editDate").style.display = "";
   document.getElementById("editMin").style.display = "none";
+  document.getElementById("editFocus").style.display = "none";
   document.getElementById("editModal").classList.add("show");
 }
 function openTaskEdit(k, id) {
@@ -1223,8 +1229,10 @@ function openTaskEdit(k, id) {
   document.getElementById("editModalTitle").textContent = "编辑任务";
   document.getElementById("editName").value = t.name;
   document.getElementById("editMin").value = t.plannedMin || "";
+  document.getElementById("editFocus").value = t.focusMin || 0;
   document.getElementById("editDate").style.display = "none";
   document.getElementById("editMin").style.display = "";
+  document.getElementById("editFocus").style.display = "";
   document.getElementById("editModal").classList.add("show");
 }
 function openNodeEdit(k, stageId, nodeId) {
@@ -1236,6 +1244,7 @@ function openNodeEdit(k, stageId, nodeId) {
   document.getElementById("editName").value = n.title;
   document.getElementById("editDate").style.display = "none";
   document.getElementById("editMin").style.display = "none";
+  document.getElementById("editFocus").style.display = "none";
   document.getElementById("editModal").classList.add("show");
 }
 function openNodeAdd(k, stageId, parentNodeId) {
@@ -1244,6 +1253,7 @@ function openNodeAdd(k, stageId, parentNodeId) {
   document.getElementById("editName").value = "";
   document.getElementById("editDate").style.display = "none";
   document.getElementById("editMin").style.display = "none";
+  document.getElementById("editFocus").style.display = "none";
   document.getElementById("editModal").classList.add("show");
 }
 function openTaskAdd(k, stageId, nodeId) {
@@ -1324,6 +1334,8 @@ function saveTaskAdd() {
   const smallId = document.getElementById("taSmall").value;
   const nodeId = smallId || bigId || null;
   data.subjects[taSubject].tasks.push({ id: uid(), name, plannedMin: Math.max(0, min), done: false, focusMin: 0, stageId, nodeId });
+  if (nodeId) expandedNodes.add(nodeId);
+  else expandedStages.add(stageId);
   save();
   render();
   closeTaskAdd();
@@ -1353,6 +1365,7 @@ function editSave() {
     if (t) {
       t.name = name;
       t.plannedMin = Math.max(0, parseInt(document.getElementById("editMin").value || "0", 10));
+      t.focusMin = Math.max(0, parseInt(document.getElementById("editFocus").value || "0", 10));
     }
   } else if (editType === "milestone") {
     const m = data.subjects[editSubject].milestones.find(x => x.id === editId);
@@ -1374,9 +1387,13 @@ function editSave() {
       const node = { id: uid(), title: name, done: false, children: [] };
       if (editParentNodeId) {
         const p = findNode(s, editParentNodeId);
-        if (p) p.children.push(node);
+        if (p) {
+          p.children.push(node);
+          expandedNodes.add(editParentNodeId);
+        }
       } else {
         s.tree.push(node);
+        expandedStages.add(editStageId);
       }
     }
   }
@@ -1407,6 +1424,7 @@ function toggleStage(k, id) {
 }
 function deleteStage(k, id) {
   data.subjects[k].tasks.forEach(t => { if (t.stageId === id) { t.stageId = null; t.nodeId = null; } });
+  expandedStages.delete(id);
   data.subjects[k].stages = data.subjects[k].stages.filter(x => x.id !== id);
   save();
   render();
