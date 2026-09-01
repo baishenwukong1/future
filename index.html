@@ -213,6 +213,8 @@
   .node-row { background: transparent; border: none; }
   .tgl { border: none; background: none; color: var(--muted); cursor: pointer; font-size: 11px; padding: 2px 4px; width: 20px; flex: none; }
   .tgl:hover { color: var(--text); }
+  .focus-edit { border: none; background: none; color: var(--muted); font-size: 12px; cursor: pointer; padding: 2px 4px; border-radius: 6px; }
+  .focus-edit:hover { color: var(--accent-2); background: rgba(255,255,255,.07); }
   .tree-children { padding-left: 2px; }
   .legend { display: flex; gap: 8px; font-size: 11px; color: var(--muted); margin-top: 10px; align-items: center; flex-wrap: wrap; }
   .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 2px; vertical-align: -1px; }
@@ -888,31 +890,37 @@ function taskStats(sub) {
 function treeCardHTML(k) {
   const sub = data.subjects[k];
   const st = taskStats(sub);
+  const mode = treeModes[k] || "active";
+  const doneCount = doneTreeCount(sub);
   return `
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <h2 style="margin-bottom:0"><span class="dot"></span>学习目录(阶段 · 内容 · 任务)</h2>
-        <button class="btn primary small" onclick="openTaskAdd('${k}','','')">＋ 添加任务</button>
+        <div style="display:flex;gap:6px;align-items:center">
+          <div style="display:flex;gap:4px;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:9px;padding:3px">
+            <button class="btn small ${mode === "active" ? "primary" : ""}" onclick="setTreeMode('${k}','active')">未完成</button>
+            <button class="btn small ${mode === "done" ? "primary" : ""}" onclick="setTreeMode('${k}','done')">已完成 ${doneCount}</button>
+          </div>
+          ${mode === "active" ? `<button class="btn primary small" onclick="openTaskAdd('${k}','','')">＋ 添加任务</button>` : ""}
+        </div>
       </div>
       <div class="bar" style="margin-bottom:8px"><i style="width:${st.pct}%; background:linear-gradient(90deg,var(--accent),var(--accent-2))"></i></div>
       <div class="meta" style="font-size:12px;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between">
         <span>任务进度 ${st.pct}%</span>
         <span>已完成 ${st.done}/${st.total} 个任务</span>
       </div>
-      <label class="auto-arch">
+      ${mode === "active" ? `<label class="auto-arch">
         <input type="checkbox" ${sub.autoArchive ? "checked" : ""} onchange="setAutoArchive('${k}', this.checked)"> 完成任务后自动归档
-      </label>
-      ${sub.stages.length === 0 ? `<div class="empty-tip">还没有阶段目标,先添加一个阶段吧</div>` : sub.stages.map(s => stageTreeHTML(k, s)).join("")}
-      ${(() => { const d = completedInfo(k); return d.count ? `
-        <button class="archive-toggle" style="margin-top:10px" onclick="toggleDoneList('${k}')">✅ 已完成 ${d.count} 项(点击展开)</button>
-        <div class="archived-list" id="done-${k}" style="display:${doneOpen.has(k) ? "" : "none"}">
-          ${d.rows}
-        </div>` : ""; })()}
-      <div class="stage-add">
+      </label>` : ""}
+      ${sub.stages.length === 0 ? `<div class="empty-tip">还没有阶段目标,先添加一个阶段吧</div>`
+        : mode === "done"
+          ? (doneCount ? sub.stages.map(s => doneStageTreeHTML(k, s)).join("") : `<div class="empty-tip">还没有已完成的内容</div>`)
+          : sub.stages.map(s => stageTreeHTML(k, s)).join("")}
+      ${mode === "active" ? `<div class="stage-add">
         <input type="text" id="stageTitle" placeholder="阶段名称,如:基础阶段">
         <input type="date" id="stageDate">
         <button class="btn primary small" onclick="addStage('${k}')">添加阶段</button>
-      </div>
+      </div>` : ""}
     </div>`;
 }
 function stageTreeHTML(k, stage) {
@@ -970,7 +978,7 @@ function taskRowHTML(k, t) {
     <div class="stage ${t.done ? "done" : ""}" style="margin-left:18px">
       <input type="checkbox" ${t.done ? "checked" : ""} onchange="toggleTask('${k}','${t.id}')">
       <div class="stage-title">${taskMark(t)}${esc(t.name)}</div>
-      <div class="stage-date">已专注 ${t.focusMin || 0} / 计划 ${t.plannedMin || 0} 分钟</div>
+      <button class="focus-edit" onclick="openTaskEdit('${k}','${t.id}')" title="点击编辑时长">已专注 ${t.focusMin || 0} / 计划 ${t.plannedMin || 0} 分钟</button>
       <select class="task-stage-pick" onchange="moveTask('${k}','${t.id}', this.value)">
         ${nodeOptionsHTML(k, t)}
       </select>
@@ -992,63 +1000,85 @@ function nodeOptionsHTML(k, t) {
   }
   return h;
 }
-function completedInfo(k) {
-  const sub = data.subjects[k];
-  let count = 0;
-  const rows = [];
-  const pathOf = (stageId, nodeId) => {
-    const s = sub.stages.find(x => x.id === stageId);
-    if (!s) return "未分组";
-    if (!nodeId) return s.title + "(直接)";
-    const trail = [];
-    const find = (nodes, target, path) => {
-      for (const node of nodes) {
-        if (node.id === target) { trail.push(...path, node.title); return true; }
-        if (find(node.children || [], target, path.concat(node.title))) return true;
-      }
-      return false;
-    };
-    find(s.tree, nodeId, [s.title]);
-    return trail.length ? trail.join(" › ") : s.title + "(直接)";
+let treeModes = {};
+function setTreeMode(k, mode) {
+  treeModes[k] = mode;
+  render();
+}
+function doneTreeCount(sub) {
+  let c = sub.stages.filter(s => s.done).length;
+  const walk = node => {
+    if (node.done) c++;
+    (node.children || []).forEach(walk);
   };
-  const row = (title, date, extra, actions) => `
-    <div class="stage">
-      <span style="width:18px;flex:none">✅</span>
-      <div class="stage-title">${title}</div>
-      <div class="stage-date">${date} ${extra || ""}</div>
-      ${actions}
+  sub.stages.forEach(s => (s.tree || []).forEach(walk));
+  c += sub.tasks.filter(t => t.done).length;
+  return c;
+}
+function nodeHasDone(sub, node) {
+  if (node.done) return true;
+  if (sub.tasks.some(t => t.nodeId === node.id && t.done)) return true;
+  return (node.children || []).some(c => nodeHasDone(sub, c));
+}
+function doneStageTreeHTML(k, stage) {
+  const sub = data.subjects[k];
+  const doneNodes = (stage.tree || []).filter(n => nodeHasDone(sub, n));
+  const doneRootTasks = sub.tasks.filter(t => t.stageId === stage.id && !t.nodeId && t.done);
+  if (!stage.done && !doneNodes.length && !doneRootTasks.length) return "";
+  const expanded = expandedStages.has(stage.id);
+  const hasMore = doneNodes.length > 0 || doneRootTasks.length > 0;
+  return `
+    <div class="tree-block">
+      <div class="stage stage-root">
+        <span style="width:18px;flex:none">${stage.done ? "✅" : "📁"}</span>
+        <button class="tgl" onclick="toggleExpandStage('${k}','${stage.id}')" title="展开/折叠">${hasMore ? (expanded ? "▾" : "▸") : ""}</button>
+        <div class="stage-title">${stageMark(stage)}${esc(stage.title)}</div>
+        <div class="stage-date ${stageDateClass(stage)}">${stage.targetDate || "未设日期"}</div>
+        <button class="del" style="color:var(--accent-2)" onclick="restoreStage('${k}','${stage.id}')" title="恢复">↩</button>
+        <button class="del" style="color:var(--accent-2)" onclick="openStageEdit('${k}','${stage.id}')" title="编辑">✏️</button>
+        <button class="del" onclick="deleteStage('${k}','${stage.id}')" title="删除">✕</button>
+      </div>
+      <div class="tree-children ${expanded ? "" : "hide"}">
+        ${doneNodes.map(n => doneNodeHTML(k, stage, n, 0)).join("")}
+        ${doneRootTasks.map(t => doneTaskRowHTML(k, t)).join("")}
+      </div>
     </div>`;
-  sub.stages.filter(s => s.done).forEach(s => {
-    count++;
-    rows.push(row(stageMark(s) + esc(s.title), s.targetDate || "未设日期", "", `
-      <button class="del" style="color:var(--accent-2)" onclick="restoreStage('${k}','${s.id}')" title="恢复">↩</button>
-      <button class="del" style="color:var(--accent-2)" onclick="openStageEdit('${k}','${s.id}')" title="编辑">✏️</button>
-      <button class="del" onclick="deleteStage('${k}','${s.id}')" title="删除">✕</button>`));
-  });
-  const walk = (stage, node, path) => {
-    if (node.done) {
-      count++;
-      rows.push(row("📂 " + esc(node.title), path, "", `
+}
+function doneNodeHTML(k, stage, node, depth) {
+  const sub = data.subjects[k];
+  const doneChildren = (node.children || []).filter(c => nodeHasDone(sub, c));
+  const doneTasks = sub.tasks.filter(t => t.nodeId === node.id && t.done);
+  if (!node.done && !doneChildren.length && !doneTasks.length) return "";
+  const expanded = expandedNodes.has(node.id);
+  const hasMore = doneChildren.length > 0 || doneTasks.length > 0;
+  return `
+    <div class="tree-block" style="margin-left:${depth ? depth * 18 : 0}px">
+      <div class="stage node-row">
+        <span style="width:18px;flex:none">${node.done ? "✅" : "📂"}</span>
+        <button class="tgl" onclick="toggleExpandNode('${stage.id}','${node.id}')" title="展开/折叠">${hasMore ? (expanded ? "▾" : "▸") : ""}</button>
+        <div class="stage-title">${esc(node.title)}</div>
+        <div class="stage-date">${node.done ? "已完成" : ""}</div>
         <button class="del" style="color:var(--accent-2)" onclick="restoreNode('${k}','${stage.id}','${node.id}')" title="恢复">↩</button>
         <button class="del" style="color:var(--accent-2)" onclick="openNodeEdit('${k}','${stage.id}','${node.id}')" title="编辑">✏️</button>
-        <button class="del" onclick="deleteNode('${k}','${stage.id}','${node.id}')" title="删除">✕</button>`));
-    }
-    node.children.forEach(c => walk(stage, c, path + " › " + node.title));
-  };
-  sub.stages.forEach(s => s.tree.forEach(n => walk(s, n, s.title)));
-  sub.tasks.filter(t => t.done).forEach(t => {
-    count++;
-    rows.push(row(taskMark(t) + esc(t.name), "已专注 " + (t.focusMin || 0) + " / 计划 " + (t.plannedMin || 0) + " 分钟", pathOf(t.stageId, t.nodeId) + (t.archived ? " · 已归档" : ""), `
+        <button class="del" onclick="deleteNode('${k}','${stage.id}','${node.id}')" title="删除">✕</button>
+      </div>
+      <div class="tree-children ${expanded ? "" : "hide"}">
+        ${doneChildren.map(c => doneNodeHTML(k, stage, c, depth + 1)).join("")}
+        ${doneTasks.map(t => doneTaskRowHTML(k, t)).join("")}
+      </div>
+    </div>`;
+}
+function doneTaskRowHTML(k, t) {
+  return `
+    <div class="stage" style="margin-left:18px">
+      <span style="width:18px;flex:none">✅</span>
+      <div class="stage-title">${taskMark(t)}${esc(t.name)}</div>
+      <button class="focus-edit" onclick="openTaskEdit('${k}','${t.id}')" title="点击编辑时长">已专注 ${t.focusMin || 0} / 计划 ${t.plannedMin || 0} 分钟</button>
+      ${t.archived ? `<span class="stage-date">已归档</span>` : ""}
       <button class="del" style="color:var(--accent-2)" onclick="restoreTask('${k}','${t.id}')" title="恢复">↩</button>
       <button class="del" style="color:var(--accent-2)" onclick="openTaskEdit('${k}','${t.id}')" title="编辑">✏️</button>
-      <button class="del" onclick="deleteTask('${k}','${t.id}')" title="删除">✕</button>`));
-  });
-  return { count, rows: rows.join("") };
-}
-let doneOpen = new Set();
-function toggleDoneList(k) {
-  doneOpen.has(k) ? doneOpen.delete(k) : doneOpen.add(k);
-  render();
+      <button class="del" onclick="deleteTask('${k}','${t.id}')" title="删除">✕</button>
+    </div>`;
 }
 function restoreStage(k, id) {
   const s = data.subjects[k].stages.find(x => x.id === id);
