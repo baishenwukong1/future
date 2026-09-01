@@ -1421,9 +1421,14 @@ function editSave() {
   } else if (editType === "task") {
     const t = data.subjects[editSubject].tasks.find(x => x.id === editId);
     if (t) {
+      const oldFocus = t.focusMin || 0;
       t.name = name;
       t.plannedMin = Math.max(0, parseInt(document.getElementById("editMin").value || "0", 10));
       t.focusMin = Math.max(0, parseInt(document.getElementById("editFocus").value || "0", 10));
+      const delta = t.focusMin - oldFocus;
+      if (delta !== 0) {
+        data.focusLogs.push({ date: today(), subject: editSubject, minutes: delta, ts: Date.now() });
+      }
     }
   } else if (editType === "milestone") {
     const m = data.subjects[editSubject].milestones.find(x => x.id === editId);
@@ -1531,6 +1536,7 @@ function dayLevel(min) {
 function focusByDate(subject) {
   const map = {};
   data.focusLogs.forEach(l => { if (!subject || l.subject === subject) map[l.date] = (map[l.date] || 0) + l.minutes; });
+  for (const k in map) { if (map[k] < 0) map[k] = 0; }
   return map;
 }
 function fmtD(d) {
@@ -1619,7 +1625,7 @@ function streakDays() {
   return s;
 }
 function renderStatsPage() {
-  const totalMin = data.focusLogs.reduce((a, b) => a + b.minutes, 0);
+  const totalMin = Math.max(0, data.focusLogs.reduce((a, b) => a + b.minutes, 0));
   let doneTasks = 0;
   for (const k in SUBJECTS) doneTasks += data.subjects[k].tasks.filter(t => t.done).length;
   const focusDays = new Set(data.focusLogs.map(l => l.date)).size;
