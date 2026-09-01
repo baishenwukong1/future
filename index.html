@@ -208,6 +208,12 @@
   .archived-list { margin-top: 6px; }
   .archived-list .stage { opacity: .72; }
   .archived-list .stage .stage-title { color: var(--muted); }
+  .tree-block { margin-top: 6px; }
+  .stage-root { background: rgba(255,255,255,.055); border: 1px solid var(--line); border-radius: 11px; }
+  .node-row { background: transparent; border: none; }
+  .tgl { border: none; background: none; color: var(--muted); cursor: pointer; font-size: 11px; padding: 2px 4px; width: 20px; flex: none; }
+  .tgl:hover { color: var(--text); }
+  .tree-children { padding-left: 2px; }
   .mark { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; flex: none; }
   .mark.green { background: var(--good); box-shadow: 0 0 6px var(--good); }
   .mark.orange { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
@@ -449,9 +455,9 @@ function fmtDate(d) {
 function today() { return fmtDate(new Date()); }
 function defaultStages() {
   return [
-    { id: uid(), title: "基础阶段", targetDate: "", done: false },
-    { id: uid(), title: "强化阶段", targetDate: "", done: false },
-    { id: uid(), title: "冲刺阶段", targetDate: "", done: false }
+    { id: uid(), title: "基础阶段", targetDate: "", done: false, tree: [] },
+    { id: uid(), title: "强化阶段", targetDate: "", done: false, tree: [] },
+    { id: uid(), title: "冲刺阶段", targetDate: "", done: false, tree: [] }
   ];
 }
 function defaultData() {
@@ -478,6 +484,7 @@ function load() {
       if (d.subjects && d.subjects[k]) {
         merged.subjects[k] = Object.assign(merged.subjects[k], d.subjects[k]);
         if (!Array.isArray(merged.subjects[k].stages)) merged.subjects[k].stages = defaultStages();
+        merged.subjects[k].stages.forEach(s => { if (!Array.isArray(s.tree)) s.tree = []; });
         if (!Array.isArray(merged.subjects[k].tasks)) merged.subjects[k].tasks = [];
         if (!Array.isArray(merged.subjects[k].milestones)) merged.subjects[k].milestones = [];
         if (typeof merged.subjects[k].autoArchive !== "boolean") merged.subjects[k].autoArchive = true;
@@ -849,60 +856,107 @@ function taskStats(sub) {
   const done = sub.tasks.filter(t => t.done).length;
   return { total, done, pct: total ? Math.round(done / total * 100) : 0 };
 }
-function tasksHTML(k) {
+function treeCardHTML(k) {
   const sub = data.subjects[k];
   const st = taskStats(sub);
-  const groups = stageGroups(sub);
   return `
     <div class="card">
-      <h2><span class="dot"></span>学习任务</h2>
+      <h2><span class="dot"></span>学习目录(阶段 · 内容 · 任务)</h2>
       <div class="bar" style="margin-bottom:8px"><i style="width:${st.pct}%; background:linear-gradient(90deg,var(--accent),var(--accent-2))"></i></div>
-      <div class="meta" style="font-size:12px;color:var(--muted);margin-bottom:12px;display:flex;justify-content:space-between">
-        <span>进度 ${st.pct}%</span>
+      <div class="meta" style="font-size:12px;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between">
+        <span>任务进度 ${st.pct}%</span>
         <span>已完成 ${st.done}/${st.total} 个任务</span>
       </div>
       <label class="auto-arch">
         <input type="checkbox" ${sub.autoArchive ? "checked" : ""} onchange="setAutoArchive('${k}', this.checked)"> 完成任务后自动归档
       </label>
-      ${st.total === 0 ? `<div class="empty-tip">还没有学习任务,添加一个吧</div>` : groups.map(g => `
-        <div class="task-group">
-          <div class="task-group-head">
-            <span class="tg-name">${g.isUngrouped ? "🗂 未分组" : "📁 " + esc(g.stage.title)}</span>
-            <span class="tg-count">已完成 ${g.done}/${g.total}</span>
-          </div>
-          <div class="bar tg-bar"><i style="width:${g.pct}%; background:linear-gradient(90deg,var(--accent),var(--accent-2))"></i></div>
-          ${g.tasks.map(t => taskRowHTML(k, t, sub.stages)).join("")}
-          ${g.archived.length ? `
-            <button class="archive-toggle" onclick="toggleArchived('${k}','${g.stage ? g.stage.id : "un"}')">📦 已归档 ${g.archived.length} 个(点击展开)</button>
-            <div class="archived-list" id="arch-${k}-${g.stage ? g.stage.id : "un"}" style="display:none">
-              ${g.archived.map(archivedRowHTML).join("")}
-            </div>` : ""}
-        </div>`).join("")}
+      ${sub.stages.length === 0 ? `<div class="empty-tip">还没有阶段目标,先添加一个阶段吧</div>` : sub.stages.map(s => stageTreeHTML(k, s)).join("")}
       <div class="stage-add">
-        <input type="text" id="taskName" placeholder="任务名称,如:完成线代第二章">
-        <input type="number" id="taskMin" min="1" placeholder="计划分钟" style="width:92px;margin-top:0">
-        <select id="taskStage">
-          <option value="">未分组</option>
-          ${sub.stages.map(s => `<option value="${s.id}">${esc(s.title)}</option>`).join("")}
-        </select>
-        <button class="btn primary small" onclick="addTask('${k}')">添加</button>
+        <input type="text" id="stageTitle" placeholder="阶段名称,如:基础阶段">
+        <input type="date" id="stageDate">
+        <button class="btn primary small" onclick="addStage('${k}')">添加阶段</button>
       </div>
     </div>`;
 }
-function taskRowHTML(k, t, stages) {
+function stageTreeHTML(k, stage) {
+  const sub = data.subjects[k];
+  const expanded = !collapsedStages.has(stage.id);
+  const rootTasks = sub.tasks.filter(t => t.stageId === stage.id && !t.archived && !t.nodeId);
+  const archivedTasks = sub.tasks.filter(t => t.stageId === stage.id && t.archived);
+  const hasMore = stage.tree.length > 0 || rootTasks.length > 0 || archivedTasks.length > 0;
   return `
-    <div class="stage ${t.done ? "done" : ""}">
+    <div class="tree-block">
+      <div class="stage stage-root ${stage.done ? "done" : ""}">
+        <input type="checkbox" ${stage.done ? "checked" : ""} onchange="toggleStage('${k}','${stage.id}')">
+        <button class="tgl" onclick="toggleExpandStage('${k}','${stage.id}')" title="展开/折叠">${hasMore ? (expanded ? "▾" : "▸") : ""}</button>
+        <div class="stage-title">${stageMark(stage)}${esc(stage.title)}</div>
+        <div class="stage-date ${stageDateClass(stage)}">${stage.targetDate || "未设日期"}</div>
+        <button class="del" style="color:var(--accent-2)" onclick="openNodeAdd('${k}','${stage.id}','')" title="添加内容">＋内容</button>
+        <button class="del" style="color:var(--accent-2)" onclick="openTaskAdd('${k}','${stage.id}','')" title="添加任务">＋任务</button>
+        <button class="del" style="color:var(--accent-2)" onclick="openStageEdit('${k}','${stage.id}')" title="编辑">✏️</button>
+        <button class="del" onclick="deleteStage('${k}','${stage.id}')" title="删除">✕</button>
+      </div>
+      <div class="tree-children ${expanded ? "" : "hide"}">
+        ${stage.tree.map(n => nodeHTML(k, stage, n, 0)).join("")}
+        ${rootTasks.map(t => taskRowHTML(k, t)).join("")}
+        ${archivedTasks.length ? `
+          <button class="archive-toggle" onclick="toggleArchived('${k}','${stage.id}')">📦 已归档 ${archivedTasks.length} 个(点击展开)</button>
+          <div class="archived-list" id="arch-${k}-${stage.id}" style="display:none">
+            ${archivedTasks.map(archivedRowHTML).join("")}
+          </div>` : ""}
+      </div>
+    </div>`;
+}
+function nodeHTML(k, stage, node, depth) {
+  const sub = data.subjects[k];
+  const expanded = !collapsedNodes.has(node.id);
+  const tasks = sub.tasks.filter(t => t.nodeId === node.id && !t.archived);
+  const childrenDone = node.children.filter(c => c.done).length;
+  const hasMore = node.children.length > 0 || tasks.length > 0;
+  return `
+    <div class="tree-block" style="margin-left:${depth ? depth * 18 : 0}px">
+      <div class="stage node-row ${node.done ? "done" : ""}">
+        <input type="checkbox" ${node.done ? "checked" : ""} onchange="toggleNode('${k}','${stage.id}','${node.id}')">
+        <button class="tgl" onclick="toggleExpandNode('${stage.id}','${node.id}')" title="展开/折叠">${hasMore ? (expanded ? "▾" : "▸") : ""}</button>
+        <div class="stage-title">${node.done ? "✅ " : "📂 "}${esc(node.title)}</div>
+        <div class="stage-date">${node.children.length ? "子项 " + childrenDone + "/" + node.children.length : (tasks.length ? tasks.length + " 任务" : "")}</div>
+        <button class="del" style="color:var(--accent-2)" onclick="openNodeAdd('${k}','${stage.id}','${node.id}')" title="添加子内容">＋子</button>
+        <button class="del" style="color:var(--accent-2)" onclick="openTaskAdd('${k}','${stage.id}','${node.id}')" title="添加任务">＋任务</button>
+        <button class="del" style="color:var(--accent-2)" onclick="openNodeEdit('${k}','${stage.id}','${node.id}')" title="编辑">✏️</button>
+        <button class="del" onclick="deleteNode('${k}','${stage.id}','${node.id}')" title="删除">✕</button>
+      </div>
+      <div class="tree-children ${expanded ? "" : "hide"}">
+        ${node.children.map(c => nodeHTML(k, stage, c, depth + 1)).join("")}
+        ${tasks.map(t => taskRowHTML(k, t)).join("")}
+      </div>
+    </div>`;
+}
+function taskRowHTML(k, t) {
+  return `
+    <div class="stage ${t.done ? "done" : ""}" style="margin-left:18px">
       <input type="checkbox" ${t.done ? "checked" : ""} onchange="toggleTask('${k}','${t.id}')">
       <div class="stage-title">${taskMark(t)}${esc(t.name)}</div>
       <div class="stage-date">已专注 ${t.focusMin || 0} / 计划 ${t.plannedMin || 0} 分钟</div>
       <select class="task-stage-pick" onchange="moveTask('${k}','${t.id}', this.value)">
-        <option value="">未分组</option>
-        ${stages.map(s => `<option value="${s.id}" ${t.stageId === s.id ? "selected" : ""}>${esc(s.title)}</option>`).join("")}
+        ${nodeOptionsHTML(k, t)}
       </select>
       ${t.done && !t.archived ? `<button class="del" style="color:var(--accent-2)" onclick="archiveTask('${k}','${t.id}')" title="归档">📦</button>` : ""}
       <button class="del" style="color:var(--accent-2)" onclick="openTaskEdit('${k}','${t.id}')" title="编辑">✏️</button>
       <button class="del" onclick="deleteTask('${k}','${t.id}')" title="删除">✕</button>
     </div>`;
+}
+function nodeOptionsHTML(k, t) {
+  const sub = data.subjects[k];
+  let h = '<option value="|">未分组</option>';
+  for (const s of sub.stages) {
+    h += `<option value="${s.id}|" ${(!t.nodeId && t.stageId === s.id) ? "selected" : ""}>${esc(s.title)}(直接)</option>`;
+    const walk = (node, path) => {
+      h += `<option value="${s.id + "|" + node.id}" ${t.nodeId === node.id ? "selected" : ""}>${esc(path + " › " + node.title)}</option>`;
+      node.children.forEach(c => walk(c, path + " › " + node.title));
+    };
+    s.tree.forEach(n => walk(n, s.title));
+  }
+  return h;
 }
 function archivedRowHTML(t) {
   return `
@@ -932,35 +986,48 @@ function stageDateClass(s) {
   if (s.doneAt > s.targetDate) return "date-red";
   return "date-orange";
 }
-function stageGroups(sub) {
-  const stageById = {};
-  sub.stages.forEach(s => stageById[s.id] = s);
-  const groups = [];
-  for (const s of sub.stages) {
-    const all = sub.tasks.filter(t => t.stageId === s.id);
-    const active = all.filter(t => !t.archived);
-    const archived = all.filter(t => t.archived);
-    if (!active.length && !archived.length) continue;
-    groups.push({ stage: s, tasks: active, archived, total: all.length, done: all.filter(t => t.done).length, isUngrouped: false });
+function findNode(stage, nodeId) {
+  const stack = (stage.tree || []).slice();
+  while (stack.length) {
+    const n = stack.shift();
+    if (n.id === nodeId) return n;
+    stack.unshift(...(n.children || []));
   }
-  const ungrouped = sub.tasks.filter(t => !t.stageId || !stageById[t.stageId]);
-  const unActive = ungrouped.filter(t => !t.archived);
-  const unArchived = ungrouped.filter(t => t.archived);
-  if (unActive.length || unArchived.length) {
-    groups.push({ stage: null, tasks: unActive, archived: unArchived, total: ungrouped.length, done: ungrouped.filter(t => t.done).length, isUngrouped: true });
-  }
-  groups.forEach(g => g.pct = g.total ? Math.round(g.done / g.total * 100) : 0);
-  return groups;
+  return null;
 }
-function addTask(k) {
-  const name = document.getElementById("taskName").value.trim();
-  const min = parseInt(document.getElementById("taskMin").value || "0", 10);
-  const stageId = document.getElementById("taskStage").value;
-  if (!name) { toast("请输入任务名称"); return; }
-  data.subjects[k].tasks.push({ id: uid(), name, plannedMin: Math.max(0, min), done: false, focusMin: 0, stageId: stageId || null });
+function collectNodeIds(node) {
+  let ids = [node.id];
+  (node.children || []).forEach(c => ids = ids.concat(collectNodeIds(c)));
+  return ids;
+}
+let collapsedStages = new Set();
+let collapsedNodes = new Set();
+function toggleExpandStage(k, id) {
+  collapsedStages.has(id) ? collapsedStages.delete(id) : collapsedStages.add(id);
+  render();
+}
+function toggleExpandNode(stageId, nodeId) {
+  collapsedNodes.has(nodeId) ? collapsedNodes.delete(nodeId) : collapsedNodes.add(nodeId);
+  render();
+}
+function toggleNode(k, stageId, nodeId) {
+  const s = data.subjects[k].stages.find(x => x.id === stageId);
+  const n = s && findNode(s, nodeId);
+  if (n) { n.done = !n.done; save(); render(); }
+}
+function deleteNode(k, stageId, nodeId) {
+  const sub = data.subjects[k];
+  const s = sub.stages.find(x => x.id === stageId);
+  if (!s) return;
+  const n = findNode(s, nodeId);
+  if (!n) return;
+  const ids = collectNodeIds(n);
+  sub.tasks.forEach(t => { if (ids.indexOf(t.nodeId) !== -1) t.nodeId = null; });
+  const prune = nodes => nodes.filter(x => x.id !== nodeId).map(x => { x.children = prune(x.children || []); return x; });
+  s.tree = prune(s.tree);
   save();
   render();
-  toast("已添加任务");
+  toast("已删除内容,其任务移回阶段下");
 }
 function toggleTask(k, id) {
   const t = data.subjects[k].tasks.find(x => x.id === id);
@@ -996,10 +1063,12 @@ function toggleArchived(k, key) {
   const el = document.getElementById("arch-" + k + "-" + key);
   if (el) el.style.display = el.style.display === "none" ? "" : "none";
 }
-function moveTask(k, id, stageId) {
+function moveTask(k, id, val) {
   const t = data.subjects[k].tasks.find(x => x.id === id);
   if (t) {
-    t.stageId = stageId || null;
+    const parts = val.split("|");
+    t.stageId = parts[0] || null;
+    t.nodeId = parts[1] || null;
     save();
     render();
   }
@@ -1040,6 +1109,8 @@ function taskModalConfirm() {
 let editSubject = null;
 let editType = null;
 let editId = null;
+let editStageId = null;
+let editParentNodeId = null;
 function openStageEdit(k, id) {
   const s = data.subjects[k].stages.find(x => x.id === id);
   if (!s) return;
@@ -1062,9 +1133,37 @@ function openTaskEdit(k, id) {
   document.getElementById("editMin").style.display = "";
   document.getElementById("editModal").classList.add("show");
 }
+function openNodeEdit(k, stageId, nodeId) {
+  const s = data.subjects[k].stages.find(x => x.id === stageId);
+  const n = s && findNode(s, nodeId);
+  if (!n) return;
+  editSubject = k; editType = "node"; editStageId = stageId; editId = nodeId;
+  document.getElementById("editModalTitle").textContent = "编辑内容";
+  document.getElementById("editName").value = n.title;
+  document.getElementById("editDate").style.display = "none";
+  document.getElementById("editMin").style.display = "none";
+  document.getElementById("editModal").classList.add("show");
+}
+function openNodeAdd(k, stageId, parentNodeId) {
+  editSubject = k; editType = "node-new"; editStageId = stageId; editParentNodeId = parentNodeId || null; editId = null;
+  document.getElementById("editModalTitle").textContent = "添加内容";
+  document.getElementById("editName").value = "";
+  document.getElementById("editDate").style.display = "none";
+  document.getElementById("editMin").style.display = "none";
+  document.getElementById("editModal").classList.add("show");
+}
+function openTaskAdd(k, stageId, nodeId) {
+  editSubject = k; editType = "task-new"; editStageId = stageId; editId = nodeId || null; editParentNodeId = null;
+  document.getElementById("editModalTitle").textContent = "添加任务";
+  document.getElementById("editName").value = "";
+  document.getElementById("editMin").value = "";
+  document.getElementById("editDate").style.display = "none";
+  document.getElementById("editMin").style.display = "";
+  document.getElementById("editModal").classList.add("show");
+}
 function editCancel() {
   document.getElementById("editModal").classList.remove("show");
-  editSubject = editType = editId = null;
+  editSubject = editType = editId = editStageId = editParentNodeId = null;
 }
 function editSave() {
   const name = document.getElementById("editName").value.trim();
@@ -1091,6 +1190,26 @@ function editSave() {
     const date = document.getElementById("editDate").value;
     if (!date) { toast("请选择日期"); return; }
     data.subjects[editSubject].milestones.push({ id: uid(), name, date });
+  } else if (editType === "node") {
+    const s = data.subjects[editSubject].stages.find(x => x.id === editStageId);
+    const n = s && findNode(s, editId);
+    if (n) n.title = name;
+  } else if (editType === "node-new") {
+    const s = data.subjects[editSubject].stages.find(x => x.id === editStageId);
+    if (s) {
+      const node = { id: uid(), title: name, done: false, children: [] };
+      if (editParentNodeId) {
+        const p = findNode(s, editParentNodeId);
+        if (p) p.children.push(node);
+      } else {
+        s.tree.push(node);
+      }
+    }
+  } else if (editType === "task-new") {
+    data.subjects[editSubject].tasks.push({
+      id: uid(), name, plannedMin: Math.max(0, parseInt(document.getElementById("editMin").value || "0", 10)),
+      done: false, focusMin: 0, stageId: editStageId, nodeId: editId
+    });
   }
   editCancel();
   save();
@@ -1099,31 +1218,11 @@ function editSave() {
 }
 
 /* ---------- 阶段目标 ---------- */
-function stagesHTML(k) {
-  const list = data.subjects[k].stages;
-  return `
-    <div class="card">
-      <h2><span class="dot"></span>阶段目标</h2>
-      ${list.length === 0 ? `<div class="empty-tip">还没有阶段目标,添加一个吧</div>` : list.map((s, i) => `
-        <div class="stage ${s.done ? "done" : ""}">
-          <input type="checkbox" ${s.done ? "checked" : ""} onchange="toggleStage('${k}', '${s.id}')">
-          <div class="stage-title">${stageMark(s)}${esc(s.title)}</div>
-          <div class="stage-date ${stageDateClass(s)}">${s.targetDate || "未设日期"}</div>
-          <button class="del" style="color:var(--accent-2)" onclick="openStageEdit('${k}','${s.id}')" title="编辑">✏️</button>
-          <button class="del" onclick="deleteStage('${k}', '${s.id}')" title="删除">✕</button>
-        </div>`).join("")}
-      <div class="stage-add">
-        <input type="text" id="stageTitle" placeholder="目标名称,如:完成线代强化">
-        <input type="date" id="stageDate">
-        <button class="btn primary small" onclick="addStage('${k}')">添加</button>
-      </div>
-    </div>`;
-}
 function addStage(k) {
   const title = document.getElementById("stageTitle").value.trim();
   if (!title) { toast("请输入目标名称"); return; }
   const targetDate = document.getElementById("stageDate").value;
-  data.subjects[k].stages.push({ id: uid(), title, targetDate, done: false });
+  data.subjects[k].stages.push({ id: uid(), title, targetDate, done: false, tree: [] });
   save();
   render();
   toast("已添加阶段目标");
@@ -1138,7 +1237,7 @@ function toggleStage(k, id) {
   }
 }
 function deleteStage(k, id) {
-  data.subjects[k].tasks.forEach(t => { if (t.stageId === id) t.stageId = null; });
+  data.subjects[k].tasks.forEach(t => { if (t.stageId === id) { t.stageId = null; t.nodeId = null; } });
   data.subjects[k].stages = data.subjects[k].stages.filter(x => x.id !== id);
   save();
   render();
@@ -1166,8 +1265,7 @@ function subjectHTML(k) {
     <div class="grid-2">
       ${timerHTML(k)}
       <div>
-        ${tasksHTML(k)}
-        <div style="margin-top:16px">${stagesHTML(k)}</div>
+        ${treeCardHTML(k)}
       </div>
     </div>`;
 }
