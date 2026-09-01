@@ -312,6 +312,7 @@
     </div>
     <div class="top-actions">
       <button class="btn ghost small" onclick="location.hash='#/stats'">📊 学习痕迹</button>
+      <button class="btn ghost small" onclick="openSyncModal()">☁️ 同步</button>
       <button class="btn ghost small" onclick="exportData()">导出数据</button>
       <button class="btn ghost small" onclick="document.getElementById('importFile').click()">导入数据</button>
       <input type="file" id="importFile" accept="application/json" class="hidden" onchange="importData(event)">
@@ -372,6 +373,24 @@
     <div class="modal-actions" style="margin-top:18px">
       <button class="btn ghost small" onclick="closeTaskAdd()">取消</button>
       <button class="btn primary small" onclick="saveTaskAdd()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="syncModal">
+  <div class="modal-box">
+    <h3>☁️ GitHub 云端同步</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">
+      进度保存在仓库 <code>data/kaoyan-plan.json</code>,任何设备打开本页都能同步。
+      令牌只存本机浏览器,建议只授权 <code>baishenwukong1/future</code> 这一个仓库的 Contents 读写权限。
+    </p>
+    <input type="password" id="syncToken" placeholder="GitHub 令牌(fine-grained PAT)" style="margin-bottom:8px">
+    <p id="syncStatus" style="font-size:12px;color:var(--muted);margin-bottom:8px;min-height:16px"></p>
+    <div class="modal-actions" style="flex-wrap:wrap">
+      <button class="btn ghost small" onclick="saveSyncToken()">保存令牌</button>
+      <button class="btn ghost small" onclick="syncPush()">⬆ 推送到云端</button>
+      <button class="btn primary small" onclick="syncPull()">⬇ 从云端拉取</button>
+      <button class="btn ghost small" onclick="closeSyncModal()">关闭</button>
     </div>
   </div>
 </div>
@@ -606,6 +625,81 @@ function importData(ev) {
   };
   reader.readAsText(f);
   ev.target.value = "";
+}
+
+/* ---------- GitHub 云端同步 ---------- */
+const SYNC_PATH = "data/kaoyan-plan.json";
+const SYNC_API = "https://api.github.com/repos/baishenwukong1/future/contents/" + SYNC_PATH;
+const SYNC_RAW = "https://raw.githubusercontent.com/baishenwukong1/future/main/" + SYNC_PATH;
+function syncToken() { return localStorage.getItem("ky_sync_token") || ""; }
+function b64u8(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = "";
+  bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin);
+}
+function openSyncModal() {
+  document.getElementById("syncToken").value = syncToken();
+  document.getElementById("syncStatus").textContent = "";
+  document.getElementById("syncModal").classList.add("show");
+}
+function closeSyncModal() {
+  document.getElementById("syncModal").classList.remove("show");
+}
+function saveSyncToken() {
+  const tk = document.getElementById("syncToken").value.trim();
+  if (!tk) { toast("请输入令牌"); return; }
+  localStorage.setItem("ky_sync_token", tk);
+  document.getElementById("syncStatus").textContent = "✅ 令牌已保存到本机";
+  toast("令牌已保存");
+}
+function syncPush() {
+  const tk = syncToken();
+  const status = document.getElementById("syncStatus");
+  if (!tk) { status.textContent = "请先粘贴并保存 GitHub 令牌"; return; }
+  status.textContent = "正在推送…";
+  fetch(SYNC_API, { headers: { Authorization: "Bearer " + tk, Accept: "application/vnd.github+json" } })
+    .then(r => r.ok ? r.json() : (r.status === 404 ? null : Promise.reject(r.status)))
+    .then(existing => {
+      const body = {
+        message: "统筹舱进度同步 " + new Date().toISOString(),
+        content: b64u8(JSON.stringify(data, null, 1))
+      };
+      if (existing && existing.sha) body.sha = existing.sha;
+      return fetch(SYNC_API, {
+        method: "PUT",
+        headers: { Authorization: "Bearer " + tk, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+    })
+    .then(r => { if (!r.ok) throw r.status; return r.json(); })
+    .then(() => {
+      status.textContent = "✅ 已推送到云端(" + new Date().toLocaleString() + ")";
+      toast("已推送到云端");
+    })
+    .catch(e => { status.textContent = "推送失败(错误 " + e + "),请检查令牌与仓库权限"; });
+}
+function syncPull() {
+  const status = document.getElementById("syncStatus");
+  status.textContent = "正在拉取…";
+  fetch(SYNC_RAW)
+    .then(r => { if (!r.ok) throw r.status; return r.json(); })
+    .then(d => {
+      if (!d || !d.subjects) throw "format";
+      if (!confirm("将从云端覆盖本地数据,确定吗?")) { status.textContent = "已取消"; return; }
+      const merged = freshData();
+      for (const k of Object.keys(SUBJECTS)) {
+        if (d.subjects[k]) merged.subjects[k] = Object.assign(merged.subjects[k], d.subjects[k]);
+      }
+      if (d.examDate) merged.examDate = d.examDate;
+      if (Array.isArray(d.focusLogs)) merged.focusLogs = d.focusLogs;
+      data = merged;
+      save();
+      render();
+      status.textContent = "✅ 已从云端恢复";
+      toast("已从云端恢复");
+    })
+    .catch(e => { status.textContent = "拉取失败(错误 " + e + "),云端可能还没有数据"; });
 }
 
 /* ---------- 倒计时 ---------- */
