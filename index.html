@@ -214,6 +214,12 @@
   .tgl { border: none; background: none; color: var(--muted); cursor: pointer; font-size: 11px; padding: 2px 4px; width: 20px; flex: none; }
   .tgl:hover { color: var(--text); }
   .tree-children { padding-left: 2px; }
+  .legend { display: flex; gap: 8px; font-size: 11px; color: var(--muted); margin-top: 10px; align-items: center; flex-wrap: wrap; }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 2px; vertical-align: -1px; }
+  .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .stat-card { background: rgba(255,255,255,.05); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .stat-card span { font-size: 12px; color: var(--muted); }
+  .stat-card b { display: block; font-size: 21px; margin-top: 4px; color: var(--accent-2); }
   .mark { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; flex: none; }
   .mark.green { background: var(--good); box-shadow: 0 0 6px var(--good); }
   .mark.orange { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
@@ -291,6 +297,7 @@
       </div>
     </div>
     <div class="top-actions">
+      <button class="btn ghost small" onclick="location.hash='#/stats'">📊 学习痕迹</button>
       <button class="btn ghost small" onclick="exportData()">导出数据</button>
       <button class="btn ghost small" onclick="document.getElementById('importFile').click()">导入数据</button>
       <input type="file" id="importFile" accept="application/json" class="hidden" onchange="importData(event)">
@@ -871,6 +878,11 @@ function treeCardHTML(k) {
         <input type="checkbox" ${sub.autoArchive ? "checked" : ""} onchange="setAutoArchive('${k}', this.checked)"> 完成任务后自动归档
       </label>
       ${sub.stages.length === 0 ? `<div class="empty-tip">还没有阶段目标,先添加一个阶段吧</div>` : sub.stages.map(s => stageTreeHTML(k, s)).join("")}
+      ${(() => { const d = completedInfo(k); return d.count ? `
+        <button class="archive-toggle" style="margin-top:10px" onclick="toggleDoneList('${k}')">✅ 已完成 ${d.count} 项(点击展开)</button>
+        <div class="archived-list" id="done-${k}" style="display:${doneOpen.has(k) ? "" : "none"}">
+          ${d.rows}
+        </div>` : ""; })()}
       <div class="stage-add">
         <input type="text" id="stageTitle" placeholder="阶段名称,如:基础阶段">
         <input type="date" id="stageDate">
@@ -879,11 +891,12 @@ function treeCardHTML(k) {
     </div>`;
 }
 function stageTreeHTML(k, stage) {
+  if (stage.done) return "";
   const sub = data.subjects[k];
   const expanded = !collapsedStages.has(stage.id);
-  const rootTasks = sub.tasks.filter(t => t.stageId === stage.id && !t.archived && !t.nodeId);
-  const archivedTasks = sub.tasks.filter(t => t.stageId === stage.id && t.archived);
-  const hasMore = stage.tree.length > 0 || rootTasks.length > 0 || archivedTasks.length > 0;
+  const activeNodes = stage.tree.filter(n => !n.done);
+  const rootTasks = sub.tasks.filter(t => t.stageId === stage.id && !t.done && !t.nodeId);
+  const hasMore = activeNodes.length > 0 || rootTasks.length > 0;
   return `
     <div class="tree-block">
       <div class="stage stage-root ${stage.done ? "done" : ""}">
@@ -897,36 +910,32 @@ function stageTreeHTML(k, stage) {
         <button class="del" onclick="deleteStage('${k}','${stage.id}')" title="删除">✕</button>
       </div>
       <div class="tree-children ${expanded ? "" : "hide"}">
-        ${stage.tree.map(n => nodeHTML(k, stage, n, 0)).join("")}
+        ${activeNodes.map(n => nodeHTML(k, stage, n, 0)).join("")}
         ${rootTasks.map(t => taskRowHTML(k, t)).join("")}
-        ${archivedTasks.length ? `
-          <button class="archive-toggle" onclick="toggleArchived('${k}','${stage.id}')">📦 已归档 ${archivedTasks.length} 个(点击展开)</button>
-          <div class="archived-list" id="arch-${k}-${stage.id}" style="display:none">
-            ${archivedTasks.map(archivedRowHTML).join("")}
-          </div>` : ""}
       </div>
     </div>`;
 }
 function nodeHTML(k, stage, node, depth) {
+  if (node.done) return "";
   const sub = data.subjects[k];
   const expanded = !collapsedNodes.has(node.id);
-  const tasks = sub.tasks.filter(t => t.nodeId === node.id && !t.archived);
-  const childrenDone = node.children.filter(c => c.done).length;
-  const hasMore = node.children.length > 0 || tasks.length > 0;
+  const tasks = sub.tasks.filter(t => t.nodeId === node.id && !t.done);
+  const activeChildren = node.children.filter(c => !c.done);
+  const hasMore = activeChildren.length > 0 || tasks.length > 0;
   return `
     <div class="tree-block" style="margin-left:${depth ? depth * 18 : 0}px">
       <div class="stage node-row ${node.done ? "done" : ""}">
         <input type="checkbox" ${node.done ? "checked" : ""} onchange="toggleNode('${k}','${stage.id}','${node.id}')">
         <button class="tgl" onclick="toggleExpandNode('${stage.id}','${node.id}')" title="展开/折叠">${hasMore ? (expanded ? "▾" : "▸") : ""}</button>
         <div class="stage-title">${node.done ? "✅ " : "📂 "}${esc(node.title)}</div>
-        <div class="stage-date">${node.children.length ? "子项 " + childrenDone + "/" + node.children.length : (tasks.length ? tasks.length + " 任务" : "")}</div>
+        <div class="stage-date">${activeChildren.length ? "子项 " + activeChildren.length : (tasks.length ? tasks.length + " 任务" : "")}</div>
         <button class="del" style="color:var(--accent-2)" onclick="openNodeAdd('${k}','${stage.id}','${node.id}')" title="添加子内容">＋子</button>
         <button class="del" style="color:var(--accent-2)" onclick="openTaskAdd('${k}','${stage.id}','${node.id}')" title="添加任务">＋任务</button>
         <button class="del" style="color:var(--accent-2)" onclick="openNodeEdit('${k}','${stage.id}','${node.id}')" title="编辑">✏️</button>
         <button class="del" onclick="deleteNode('${k}','${stage.id}','${node.id}')" title="删除">✕</button>
       </div>
       <div class="tree-children ${expanded ? "" : "hide"}">
-        ${node.children.map(c => nodeHTML(k, stage, c, depth + 1)).join("")}
+        ${activeChildren.map(c => nodeHTML(k, stage, c, depth + 1)).join("")}
         ${tasks.map(t => taskRowHTML(k, t)).join("")}
       </div>
     </div>`;
@@ -958,14 +967,76 @@ function nodeOptionsHTML(k, t) {
   }
   return h;
 }
-function archivedRowHTML(t) {
-  return `
+function completedInfo(k) {
+  const sub = data.subjects[k];
+  let count = 0;
+  const rows = [];
+  const pathOf = (stageId, nodeId) => {
+    const s = sub.stages.find(x => x.id === stageId);
+    if (!s) return "未分组";
+    if (!nodeId) return s.title + "(直接)";
+    const trail = [];
+    const find = (nodes, target, path) => {
+      for (const node of nodes) {
+        if (node.id === target) { trail.push(...path, node.title); return true; }
+        if (find(node.children || [], target, path.concat(node.title))) return true;
+      }
+      return false;
+    };
+    find(s.tree, nodeId, [s.title]);
+    return trail.length ? trail.join(" › ") : s.title + "(直接)";
+  };
+  const row = (title, date, extra, actions) => `
     <div class="stage">
       <span style="width:18px;flex:none">✅</span>
-      <div class="stage-title">${taskMark(t)}${esc(t.name)}</div>
-      <div class="stage-date">已专注 ${t.focusMin || 0} / 计划 ${t.plannedMin || 0} 分钟</div>
-      <span style="width:28px"></span>
+      <div class="stage-title">${title}</div>
+      <div class="stage-date">${date} ${extra || ""}</div>
+      ${actions}
     </div>`;
+  sub.stages.filter(s => s.done).forEach(s => {
+    count++;
+    rows.push(row(stageMark(s) + esc(s.title), s.targetDate || "未设日期", "", `
+      <button class="del" style="color:var(--accent-2)" onclick="restoreStage('${k}','${s.id}')" title="恢复">↩</button>
+      <button class="del" style="color:var(--accent-2)" onclick="openStageEdit('${k}','${s.id}')" title="编辑">✏️</button>
+      <button class="del" onclick="deleteStage('${k}','${s.id}')" title="删除">✕</button>`));
+  });
+  const walk = (stage, node, path) => {
+    if (node.done) {
+      count++;
+      rows.push(row("📂 " + esc(node.title), path, "", `
+        <button class="del" style="color:var(--accent-2)" onclick="restoreNode('${k}','${stage.id}','${node.id}')" title="恢复">↩</button>
+        <button class="del" style="color:var(--accent-2)" onclick="openNodeEdit('${k}','${stage.id}','${node.id}')" title="编辑">✏️</button>
+        <button class="del" onclick="deleteNode('${k}','${stage.id}','${node.id}')" title="删除">✕</button>`));
+    }
+    node.children.forEach(c => walk(stage, c, path + " › " + node.title));
+  };
+  sub.stages.forEach(s => s.tree.forEach(n => walk(s, n, s.title)));
+  sub.tasks.filter(t => t.done).forEach(t => {
+    count++;
+    rows.push(row(taskMark(t) + esc(t.name), "已专注 " + (t.focusMin || 0) + " / 计划 " + (t.plannedMin || 0) + " 分钟", pathOf(t.stageId, t.nodeId) + (t.archived ? " · 已归档" : ""), `
+      <button class="del" style="color:var(--accent-2)" onclick="restoreTask('${k}','${t.id}')" title="恢复">↩</button>
+      <button class="del" style="color:var(--accent-2)" onclick="openTaskEdit('${k}','${t.id}')" title="编辑">✏️</button>
+      <button class="del" onclick="deleteTask('${k}','${t.id}')" title="删除">✕</button>`));
+  });
+  return { count, rows: rows.join("") };
+}
+let doneOpen = new Set();
+function toggleDoneList(k) {
+  doneOpen.has(k) ? doneOpen.delete(k) : doneOpen.add(k);
+  render();
+}
+function restoreStage(k, id) {
+  const s = data.subjects[k].stages.find(x => x.id === id);
+  if (s) { s.done = false; s.doneAt = null; save(); render(); toast("已恢复"); }
+}
+function restoreNode(k, stageId, nodeId) {
+  const s = data.subjects[k].stages.find(x => x.id === stageId);
+  const n = s && findNode(s, nodeId);
+  if (n) { n.done = false; n.doneAt = null; save(); render(); toast("已恢复"); }
+}
+function restoreTask(k, id) {
+  const t = data.subjects[k].tasks.find(x => x.id === id);
+  if (t) { t.done = false; t.doneAt = null; t.archived = false; save(); render(); toast("已恢复"); }
 }
 function taskMark(t) {
   if (!t.done || !t.plannedMin) return "";
@@ -1013,7 +1084,12 @@ function toggleExpandNode(stageId, nodeId) {
 function toggleNode(k, stageId, nodeId) {
   const s = data.subjects[k].stages.find(x => x.id === stageId);
   const n = s && findNode(s, nodeId);
-  if (n) { n.done = !n.done; save(); render(); }
+  if (n) {
+    n.done = !n.done;
+    n.doneAt = n.done ? today() : null;
+    save();
+    render();
+  }
 }
 function deleteNode(k, stageId, nodeId) {
   const sub = data.subjects[k];
@@ -1033,6 +1109,7 @@ function toggleTask(k, id) {
   const t = data.subjects[k].tasks.find(x => x.id === id);
   if (t) {
     t.done = !t.done;
+    t.doneAt = t.done ? today() : null;
     if (t.done && data.subjects[k].autoArchive) t.archived = true;
     save();
     render();
@@ -1058,10 +1135,6 @@ function archiveTask(k, id) {
     render();
     toast("已归档到阶段历史");
   }
-}
-function toggleArchived(k, key) {
-  const el = document.getElementById("arch-" + k + "-" + key);
-  if (el) el.style.display = el.style.display === "none" ? "" : "none";
 }
 function moveTask(k, id, val) {
   const t = data.subjects[k].tasks.find(x => x.id === id);
@@ -1267,6 +1340,140 @@ function subjectHTML(k) {
       <div>
         ${treeCardHTML(k)}
       </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2><span class="dot"></span>学习痕迹 · 近 8 周</h2>
+      ${heatmapSVG(k, 8)}
+      ${heatmapLegend()}
+    </div>`;
+}
+
+/* ---------- 学习痕迹图表 ---------- */
+function dayLevel(min) {
+  if (!min) return 0;
+  if (min < 30) return 1;
+  if (min < 60) return 2;
+  if (min < 90) return 3;
+  return 4;
+}
+function focusByDate(subject) {
+  const map = {};
+  data.focusLogs.forEach(l => { if (!subject || l.subject === subject) map[l.date] = (map[l.date] || 0) + l.minutes; });
+  return map;
+}
+function fmtD(d) {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function heatmapSVG(subject, weeks) {
+  const map = focusByDate(subject);
+  const colors = ["rgba(255,255,255,.07)", "rgba(52,211,153,.30)", "rgba(52,211,153,.55)", "rgba(52,211,153,.80)", "#34d399"];
+  const cell = 11, gap = 3;
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(start.getDate() - (weeks * 7 - 1));
+  start.setDate(start.getDate() - start.getDay());
+  const cols = Math.ceil((end - start) / (7 * 86400000));
+  const todayStr = fmtD(new Date());
+  let h = '<div style="overflow-x:auto"><svg width="' + (cols * (cell + gap) + 4) + '" height="' + (7 * (cell + gap) + 26) + '" role="img" aria-label="学习热力图">';
+  for (let c = 0; c < cols; c++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + c * 7);
+    if (d.getDate() <= 7) h += '<text x="' + (c * (cell + gap)) + '" y="10" font-size="9" fill="#8ea3bf">' + (d.getMonth() + 1) + '月</text>';
+  }
+  for (let c = 0; c < cols; c++) {
+    for (let r = 0; r < 7; r++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + c * 7 + r);
+      if (d > end) continue;
+      const key = fmtD(d);
+      const mins = map[key] || 0;
+      const x = c * (cell + gap), y = 26 + r * (cell + gap);
+      h += '<rect x="' + x + '" y="' + y + '" width="' + cell + '" height="' + cell + '" rx="2.5" fill="' + colors[dayLevel(mins)] + '">' +
+        '<title>' + key + (key === todayStr ? "(今天)" : "") + ' 专注 ' + mins + ' 分钟</title></rect>';
+    }
+  }
+  h += '</svg></div>';
+  return h;
+}
+function heatmapLegend() {
+  const colors = ["rgba(255,255,255,.07)", "rgba(52,211,153,.30)", "rgba(52,211,153,.55)", "rgba(52,211,153,.80)", "#34d399"];
+  return '<div class="legend"><span>少</span>' + colors.map(c => '<span class="sw" style="background:' + c + '"></span>').join("") + '<span>多</span><span>· 颜色越深,当天专注越久</span></div>';
+}
+function doneByDate() {
+  const map = {};
+  for (const k in SUBJECTS) {
+    data.subjects[k].tasks.forEach(t => { if (t.done && t.doneAt) map[t.doneAt] = (map[t.doneAt] || 0) + 1; });
+  }
+  return map;
+}
+function dailyChartSVG() {
+  const days = 30;
+  const focus = focusByDate(null);
+  const doneMap = doneByDate();
+  const arr = [];
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+    const key = fmtD(d);
+    arr.push({ key, min: focus[key] || 0, done: doneMap[key] || 0 });
+  }
+  const maxMin = Math.max(1, ...arr.map(x => x.min));
+  const maxDone = Math.max(1, ...arr.map(x => x.done));
+  const W = 680, H = 190, top = 14, base = 150;
+  const slot = W / days;
+  let h = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="近30天趋势">';
+  h += '<line x1="0" y1="' + base + '" x2="' + W + '" y2="' + base + '" stroke="#263449" stroke-width="1"/>';
+  arr.forEach((x, i) => {
+    const bw = Math.max(2, slot * 0.6);
+    const bh = x.min / maxMin * (base - top);
+    h += '<rect x="' + (i * slot + (slot - bw) / 2).toFixed(1) + '" y="' + (base - bh).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1) + '" fill="rgba(99,102,241,.75)" rx="2">' +
+      '<title>' + x.key + ' 专注 ' + x.min + ' 分钟</title></rect>';
+  });
+  const pts = arr.map((x, i) => (i * slot + slot / 2).toFixed(1) + ',' + (base - x.done / maxDone * (base - top)).toFixed(1));
+  h += '<polyline points="' + pts.join(" ") + '" fill="none" stroke="#34d399" stroke-width="2"/>';
+  for (let i = 0; i < days; i += 5) {
+    h += '<text x="' + (i * slot + slot / 2) + '" y="' + (base + 16) + '" font-size="9" text-anchor="middle" fill="#8ea3bf">' + arr[i].key.slice(5).replace("-", "/") + '</text>';
+  }
+  h += '</svg>';
+  return h;
+}
+function streakDays() {
+  const set = new Set(data.focusLogs.map(l => l.date));
+  const d = new Date();
+  if (!set.has(fmtD(d))) d.setDate(d.getDate() - 1);
+  let s = 0;
+  while (set.has(fmtD(d))) { s++; d.setDate(d.getDate() - 1); }
+  return s;
+}
+function renderStatsPage() {
+  const totalMin = data.focusLogs.reduce((a, b) => a + b.minutes, 0);
+  let doneTasks = 0;
+  for (const k in SUBJECTS) doneTasks += data.subjects[k].tasks.filter(t => t.done).length;
+  const focusDays = new Set(data.focusLogs.map(l => l.date)).size;
+  const avg = focusDays ? Math.round(totalMin / focusDays) : 0;
+  const cards = [
+    ["累计专注", Math.round(totalMin / 60 * 10) / 10 + " 小时"],
+    ["完成任务", doneTasks + " 个"],
+    ["连续坚持", streakDays() + " 天"],
+    ["活跃天数", focusDays + " 天"],
+    ["日均专注", avg + " 分钟"]
+  ];
+  return `
+    <div class="sub-header">
+      <a class="back" href="#" onclick="event.preventDefault();goHome()">← 返回首页</a>
+      <h2>📊 学习痕迹</h2>
+    </div>
+    <div class="stat-cards">${cards.map(c => `<div class="stat-card"><span>${c[0]}</span><b>${c[1]}</b></div>`).join("")}</div>
+    <div class="card" style="margin-top:14px">
+      <h2><span class="dot"></span>专注热力图 · 近 14 周</h2>
+      ${heatmapSVG(null, 14)}
+      ${heatmapLegend()}
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2><span class="dot"></span>近 30 天 · 专注时长与完成任务</h2>
+      ${dailyChartSVG()}
+      <div class="legend"><span class="sw" style="background:rgba(99,102,241,.75)"></span>专注分钟<span class="sw" style="background:#34d399"></span>完成任务数</div>
     </div>`;
 }
 
@@ -1277,6 +1484,9 @@ function render() {
   if (SUBJECTS[hash]) {
     document.title = SUBJECTS[hash].name + " · 考研统筹舱";
     view.innerHTML = subjectHTML(hash);
+  } else if (hash === "stats") {
+    document.title = "学习痕迹 · 考研统筹舱";
+    view.innerHTML = renderStatsPage();
   } else {
     document.title = "考研统筹舱 · 向未来出发";
     view.innerHTML = dashboardHTML();
