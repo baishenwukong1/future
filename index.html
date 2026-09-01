@@ -245,6 +245,11 @@
   .tl-node.today::before { background: var(--warn); box-shadow: 0 0 0 3px rgba(251,191,36,.22); }
   .tl-node .tl-title { font-size: 11.5px; display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1.3; }
   .tl-node .tl-date { font-size: 10.5px; color: var(--muted); margin-top: 3px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .tl-multi { min-width: 132px; flex-basis: auto; }
+  .tl-branch { display: flex; flex-direction: column; gap: 4px; text-align: left; }
+  .tl-branch .tl-item { border-left: 1.5px dashed var(--line); padding-left: 8px; }
+  .tl-branch .tl-item .tl-title { align-items: flex-start; }
+  .tl-branch .tl-item .tl-date { align-items: flex-start; }
 
   /* 进度 */
   .progress-row { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
@@ -672,22 +677,45 @@ function timelineHTML(k) {
   sub.stages.forEach(s => { if (s.targetDate) nodes.push({ id: s.id, name: s.title, date: s.targetDate, done: !!s.done, kind: "stage" }); });
   sub.milestones.forEach(m => nodes.push({ id: m.id, name: m.name, date: m.date, done: false, kind: "ms" }));
   nodes.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  const groups = [];
+  const byDate = {};
+  nodes.forEach(n => {
+    if (!byDate[n.date]) { byDate[n.date] = { date: n.date, items: [] }; groups.push(byDate[n.date]); }
+    byDate[n.date].items.push(n);
+  });
   return `
     <div class="timeline">
-      ${nodes.length === 0 ? `<div class="empty-tip">暂无时间点,添加一个吧</div>` : nodes.map(n => {
-        const st = tlState(n);
-        return `
-        <div class="tl-node ${st.cls}">
-          <div class="tl-title">${n.kind === "stage" ? "📁" : "📌"} ${esc(n.name)} ${n.done ? `<span class="date-green">✓ 已完成</span>` : ""}</div>
-          <div class="tl-date">
-            <span>${n.date} · ${st.text}</span>
-            ${n.kind === "ms" ? `
-              <button class="del" style="color:var(--accent-2)" onclick="openMilestoneEdit('${k}','${n.id}')" title="编辑">✏️</button>
-              <button class="del" onclick="deleteMilestone('${k}','${n.id}')" title="删除">✕</button>` : ""}
-          </div>
-        </div>`;
-      }).join("")}
+      ${groups.length === 0 ? `<div class="empty-tip">暂无时间点,添加一个吧</div>` : groups.map(g => tlGroupHTML(k, g)).join("")}
     </div>`;
+}
+function tlGroupHTML(k, g) {
+  const st = tlGroupState(g.items);
+  const multi = g.items.length > 1;
+  return `
+    <div class="tl-node ${st.cls} ${multi ? "tl-multi" : ""}">
+      ${multi
+        ? `<div class="tl-branch">${g.items.map(n => tlItemHTML(k, n, g.date)).join("")}</div>`
+        : tlItemHTML(k, g.items[0], g.date)}
+    </div>`;
+}
+function tlItemHTML(k, n, date) {
+  const st = tlState(n);
+  return `
+    <div class="tl-item">
+      <div class="tl-title">${n.kind === "stage" ? "📁" : "📌"} ${esc(n.name)} ${n.done ? `<span class="date-green">✓ 已完成</span>` : ""}</div>
+      <div class="tl-date">
+        <span>${date} · ${st.text}</span>
+        ${n.kind === "ms" ? `
+          <button class="del" style="color:var(--accent-2)" onclick="openMilestoneEdit('${k}','${n.id}')" title="编辑">✏️</button>
+          <button class="del" onclick="deleteMilestone('${k}','${n.id}')" title="删除">✕</button>` : ""}
+      </div>
+    </div>`;
+}
+function tlGroupState(items) {
+  if (items.every(n => n.done)) return { cls: "done" };
+  if (items.some(n => !n.done && n.date < today())) return { cls: "overdue" };
+  if (items.some(n => n.date === today())) return { cls: "today" };
+  return { cls: "" };
 }
 function tlState(n) {
   if (n.done) return { cls: "done", text: "已完成" };
