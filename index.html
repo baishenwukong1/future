@@ -343,6 +343,24 @@
   </div>
 </div>
 
+<div class="modal-mask" id="taskAddModal">
+  <div class="modal-box">
+    <h3>添加任务</h3>
+    <input type="text" id="taName" placeholder="任务名称,如:极限计算练习">
+    <input type="number" id="taMin" min="1" placeholder="计划分钟" style="margin-top:10px">
+    <div style="font-size:12px;color:var(--muted);margin:14px 0 4px">所属阶段</div>
+    <select id="taStage" onchange="taStageChanged()"></select>
+    <div style="font-size:12px;color:var(--muted);margin:10px 0 4px">大类(内容)</div>
+    <select id="taBig" onchange="taBigChanged()"></select>
+    <div style="font-size:12px;color:var(--muted);margin:10px 0 4px">小类(子内容,可不选)</div>
+    <select id="taSmall"></select>
+    <div class="modal-actions" style="margin-top:18px">
+      <button class="btn ghost small" onclick="closeTaskAdd()">取消</button>
+      <button class="btn primary small" onclick="saveTaskAdd()">保存</button>
+    </div>
+  </div>
+</div>
+
 <svg width="0" height="0" style="position:absolute">
   <defs>
     <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -868,7 +886,10 @@ function treeCardHTML(k) {
   const st = taskStats(sub);
   return `
     <div class="card">
-      <h2><span class="dot"></span>学习目录(阶段 · 内容 · 任务)</h2>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h2 style="margin-bottom:0"><span class="dot"></span>学习目录(阶段 · 内容 · 任务)</h2>
+        <button class="btn primary small" onclick="openTaskAdd('${k}','','')">＋ 添加任务</button>
+      </div>
       <div class="bar" style="margin-bottom:8px"><i style="width:${st.pct}%; background:linear-gradient(90deg,var(--accent),var(--accent-2))"></i></div>
       <div class="meta" style="font-size:12px;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between">
         <span>任务进度 ${st.pct}%</span>
@@ -1226,13 +1247,93 @@ function openNodeAdd(k, stageId, parentNodeId) {
   document.getElementById("editModal").classList.add("show");
 }
 function openTaskAdd(k, stageId, nodeId) {
-  editSubject = k; editType = "task-new"; editStageId = stageId; editId = nodeId || null; editParentNodeId = null;
-  document.getElementById("editModalTitle").textContent = "添加任务";
-  document.getElementById("editName").value = "";
-  document.getElementById("editMin").value = "";
-  document.getElementById("editDate").style.display = "none";
-  document.getElementById("editMin").style.display = "";
-  document.getElementById("editModal").classList.add("show");
+  taSubject = k;
+  taPresetStage = stageId || null;
+  taPresetNode = nodeId || null;
+  document.getElementById("taName").value = "";
+  document.getElementById("taMin").value = "";
+  fillTaStage();
+  document.getElementById("taskAddModal").classList.add("show");
+}
+let taSubject = null;
+let taPresetStage = null;
+let taPresetNode = null;
+function fillTaStage() {
+  const stages = data.subjects[taSubject].stages;
+  document.getElementById("taStage").innerHTML =
+    '<option value="">选择阶段目标…</option>' +
+    stages.map(s => `<option value="${s.id}" ${taPresetStage === s.id ? "selected" : ""}>${esc(s.title)}</option>`).join("");
+  taStageChanged();
+}
+function taStageChanged() {
+  const stageId = document.getElementById("taStage").value;
+  const stage = data.subjects[taSubject].stages.find(s => s.id === stageId);
+  const bigSel = document.getElementById("taBig");
+  if (!stage) {
+    bigSel.innerHTML = '<option value="">请先选择阶段</option>';
+    document.getElementById("taSmall").innerHTML = "";
+    return;
+  }
+  bigSel.innerHTML = '<option value="">直接挂在阶段下</option>' +
+    stage.tree.map(n => `<option value="${n.id}">${esc(n.title)}</option>`).join("");
+  if (taPresetNode) {
+    const topNode = stage.tree.find(n => {
+      let found = false;
+      const scan = node => {
+        if (node.id === taPresetNode) { found = true; return; }
+        (node.children || []).forEach(scan);
+      };
+      scan(n);
+      return found;
+    });
+    if (topNode) {
+      bigSel.value = topNode.id;
+    }
+  }
+  taBigChanged();
+}
+function taBigChanged() {
+  const stageId = document.getElementById("taStage").value;
+  const bigId = document.getElementById("taBig").value;
+  const stage = data.subjects[taSubject].stages.find(s => s.id === stageId);
+  const sel = document.getElementById("taSmall");
+  if (!stage || !bigId) {
+    sel.innerHTML = '<option value="">无(直接挂在阶段下)</option>';
+    return;
+  }
+  const big = findNode(stage, bigId);
+  if (!big) { sel.innerHTML = '<option value="">无</option>'; return; }
+  let opts = '<option value="">直接挂在大类下</option>';
+  const walk = (node, depth) => {
+    node.children.forEach(c => opts += `<option value="${c.id}">${"　".repeat(depth)}${esc(c.title)}</option>`);
+    node.children.forEach(c => walk(c, depth + 1));
+  };
+  walk(big, 1);
+  sel.innerHTML = opts;
+  if (taPresetNode && taPresetNode !== bigId) {
+    sel.value = taPresetNode;
+  }
+}
+function saveTaskAdd() {
+  const name = document.getElementById("taName").value.trim();
+  const min = parseInt(document.getElementById("taMin").value || "0", 10);
+  const stageId = document.getElementById("taStage").value;
+  if (!name) { toast("请输入任务名称"); return; }
+  if (!stageId) { toast("请选择所属阶段"); return; }
+  const bigId = document.getElementById("taBig").value;
+  const smallId = document.getElementById("taSmall").value;
+  const nodeId = smallId || bigId || null;
+  data.subjects[taSubject].tasks.push({ id: uid(), name, plannedMin: Math.max(0, min), done: false, focusMin: 0, stageId, nodeId });
+  save();
+  render();
+  closeTaskAdd();
+  toast("已添加任务");
+}
+function closeTaskAdd() {
+  document.getElementById("taskAddModal").classList.remove("show");
+  taSubject = null;
+  taPresetStage = null;
+  taPresetNode = null;
 }
 function editCancel() {
   document.getElementById("editModal").classList.remove("show");
@@ -1278,11 +1379,6 @@ function editSave() {
         s.tree.push(node);
       }
     }
-  } else if (editType === "task-new") {
-    data.subjects[editSubject].tasks.push({
-      id: uid(), name, plannedMin: Math.max(0, parseInt(document.getElementById("editMin").value || "0", 10)),
-      done: false, focusMin: 0, stageId: editStageId, nodeId: editId
-    });
   }
   editCancel();
   save();
