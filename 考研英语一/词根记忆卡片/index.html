@@ -45,6 +45,8 @@ h1 small{color:var(--muted); font-weight:400; font-size:12px}
 .front .word{font-size:34px; font-weight:700; letter-spacing:.5px}
 .front .ph{color:var(--muted); font-size:15px; margin-top:6px}
 .front .hint{color:var(--muted); font-size:12px; margin-top:18px}
+.spk{border:none;background:none;cursor:pointer;font-size:22px;line-height:1;padding:2px;vertical-align:2px}
+.spk:hover{opacity:.7}
 .back{margin-top:14px; border-top:1px dashed var(--line); padding-top:12px}
 .back .pos{font-size:13px; color:#333}
 .back .freq{color:var(--red); font-weight:600; font-size:13px}
@@ -198,9 +200,23 @@ function levelBadge(i){
 
 function wordCard(i){
   const w = DATA.W[i];
-  return '<div class="front"><div class="word">'+esc(w.w)+'</div>'+
+  return '<div class="front"><div class="word">'+esc(w.w)+' '+spkBtn(w.w)+'</div>'+
     (w.p?'<div class="ph">'+esc(w.p)+'</div>':'')+
     '<div class="hint">先回忆意思，再翻面（空格）</div></div>';
+}
+
+function spkBtn(word){
+  return '<button class="spk" onclick="event.stopPropagation();speak(\''+esc(word)+'\')" title="点击发音">🔊</button>';
+}
+function speak(text){
+  try{
+    if(!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    u.rate = 0.9;
+    speechSynthesis.speak(u);
+  }catch(e){}
 }
 
 function wordBack(i){
@@ -406,7 +422,7 @@ function onSearch(){
   for(const i of hits.slice(0,30)){
     const w = DATA.W[i];
     h += '<div class="gcard" onclick="startSession(['+i+'], \''+esc(w.w)+'\', \'\', 1, \'\', 0, 0)">'+
-      '<div class="gt">'+esc(w.w)+' <span style="color:var(--muted);font-weight:400">'+esc(w.p)+'</span></div>'+
+      '<div class="gt">'+esc(w.w)+' '+spkBtn(w.w)+' <span style="color:var(--muted);font-weight:400">'+esc(w.p)+'</span></div>'+
       '<div class="gr">'+frBadge(w.fr)+' '+levelBadge(i)+' ｜ '+esc(w.d)+'</div></div>';
   }
   h += hits.length>30 ? '<p style="color:var(--muted);margin-top:8px">只显示前 30 条，继续输入可精确查找。</p>' : '';
