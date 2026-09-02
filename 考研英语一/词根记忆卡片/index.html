@@ -117,6 +117,10 @@ svg text{font-size:10px;fill:var(--muted)}
 .poem-list .pitem .zh{font-size:14px;font-weight:600}
 .poem-list .pitem .en{font-size:12px;color:#333;margin-top:3px}
 .poem-list .pitem .src{font-size:11px;color:var(--muted);margin-top:3px;text-align:right}
+.rev-groups{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.rev-group{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:9px 12px}
+.rev-group-head{font-size:13px;font-weight:600;color:var(--blue)}
+.rev-group-words{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.7}
 </style>
 </head>
 <body>
@@ -136,7 +140,7 @@ svg text{font-size:10px;fill:var(--muted)}
     <button id="tab-st" onclick="showTab('st')">统计</button>
   </div>
 
-  <div class="notice">用法：选一组 → 看口诀 → 翻卡片回忆 → 按“不熟/模糊/认识”自评。记错的词稍后会再出现；今天学的词明天进入“今日复习”。空格翻面，1/2/3 评分。</div>
+  <div class="notice">用法：选一组 → 看口诀 → 翻卡片回忆 → 按“不熟/模糊/认识/很熟”自评，自动跳到下一个单词。今天学的词按计划进入“今日复习”。空格翻面，1/2/3/4 评分。</div>
 
   <div class="search"><input id="q" type="text" placeholder="搜单词（如 predict、rental）" oninput="onSearch()"></div>
 
@@ -364,10 +368,6 @@ function rate(lvl){
   state.n++;
   addDay(first ? 'n' : 'r');
   save();
-  if(lvl<=1){
-    session.list.splice(session.i+1, 0, idx);   // 不熟：本组内稍后再现
-    session.total++;
-  }
   session.i++;
   renderCard();
   renderStats();
@@ -376,8 +376,17 @@ function rate(lvl){
 function renderEnd(){
   const el = document.getElementById('p-study');
   const done = session.list.filter(i=>(state.rate[i]||0)>=3).length;
-  el.innerHTML = '<div class="end"><div class="big">🎉</div><h2>本组完成</h2>'+
+  const counts = [0,0,0,0,0];
+  session.list.forEach(i => counts[state.rate[i]||0]++);
+  let dom = 0, domLvl = 0;
+  for(let l=1;l<=4;l++){ if(counts[l] > dom){ dom = counts[l]; domLvl = l; } }
+  const levelColors = ['', '#c0392b', '#b8860b', '#2e6b34', '#1f4e79'];
+  const levelTints = ['', 'rgba(192,57,43,.14)', 'rgba(184,134,11,.14)', 'rgba(46,107,52,.16)', 'rgba(31,78,121,.16)'];
+  const levelNames = ['', '不熟', '模糊', '认识', '很熟'];
+  el.innerHTML = '<div class="end" style="background:'+(domLvl?levelTints[domLvl]:'transparent')+';border:1px solid '+(domLvl?levelColors[domLvl]+'66':'var(--line)')+';border-radius:14px">'+
+    '<div class="big">🎉</div><h2>本组完成</h2>'+
     '<p>这组共 '+session.total+' 张，自评“认识及以上” '+done+' 张；</p>'+
+    (domLvl ? '<p style="margin-top:6px">整体状态偏向：<b style="color:'+levelColors[domLvl]+'">'+levelNames[domLvl]+'</b>（'+dom+' 张）</p>' : '')+
     '<p>明天“今日复习”会提醒你巩固。</p>'+
     '<button class="btn primary" onclick="backHome()">返回分组</button></div>';
 }
@@ -396,9 +405,25 @@ function renderReview(){
       '<p>先去“词根家族”学一组新词吧。</p><button class="btn primary" onclick="showTab(\'fam\')">去学新词</button></div>';
     return;
   }
-  el.innerHTML = '<div class="groupbar"><div class="gt">今日复习 · '+due.length+' 词</div>'+
-    '<div class="gr">先回忆再翻面，答错的词会排到后面再考一次。</div></div>'+
-    '<div style="text-align:center;margin-top:12px"><button class="btn primary" onclick="startReview()">开始复习</button></div>';
+  const D = 86400000;
+  const groups = {};
+  due.forEach(i => {
+    const key = dateKeyOf(new Date(state.due[i]));
+    (groups[key] = groups[key] || []).push(i);
+  });
+  const keys = Object.keys(groups).sort();
+  const todayKey = dateKey();
+  let h = '<div class="groupbar"><div class="gt">今日复习 · '+due.length+' 词</div>'+
+    '<div class="gr">先回忆再翻面，自评后自动进入下一个单词。</div></div>'+
+    '<div class="rev-groups">';
+  keys.forEach(key => {
+    const label = key === todayKey ? '今天（'+key+'）' : key;
+    const words = groups[key].map(i => DATA.W[i].w).join('、');
+    h += '<div class="rev-group"><div class="rev-group-head">📅 '+esc(label)+' · '+groups[key].length+' 词</div>'+
+         '<div class="rev-group-words">'+esc(words)+'</div></div>';
+  });
+  h += '</div><div style="text-align:center;margin-top:12px"><button class="btn primary" onclick="startReview()">开始复习（'+due.length+' 词）</button></div>';
+  el.innerHTML = h;
   session._review = due;
 }
 
