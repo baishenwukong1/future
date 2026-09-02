@@ -1,0 +1,708 @@
+{
+ "examDate": "2026-12-19",
+ "subjects": {
+  "math": {
+   "progress": 0,
+   "note": "",
+   "updated": "",
+   "stages": [
+    {
+     "id": "mth977mhb0yzz",
+     "title": "基础夯实-概率论与数理统计",
+     "targetDate": "2026-09-30",
+     "done": false,
+     "tree": []
+    },
+    {
+     "id": "mthblqimx4k6q",
+     "title": "基础夯实-高等数学",
+     "targetDate": "2026-09-30",
+     "done": false,
+     "tree": []
+    }
+   ],
+   "tasks": [
+    {
+     "id": "mth98anjmh940",
+     "name": "基础夯实-概率论与数理统计第一章第一小节",
+     "plannedMin": 60,
+     "done": true,
+     "focusMin": 180,
+     "stageId": "mth977mhb0yzz",
+     "archived": true
+    },
+    {
+     "id": "mthbnwn6twgtv",
+     "name": "基础夯实-高等数学第一章第一节映射与函数",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 0,
+     "stageId": "mthblqimx4k6q",
+     "archived": true
+    },
+    {
+     "id": "mthbp6ecss43e",
+     "name": "基础夯实-高等数学第一章第二节数列的极限",
+     "plannedMin": 60,
+     "done": false,
+     "focusMin": 0,
+     "stageId": "mthblqimx4k6q"
+    }
+   ],
+   "autoArchive": false,
+   "milestones": []
+  },
+  "cs": {
+   "progress": 0,
+   "note": "",
+   "updated": "",
+   "stages": [
+    {
+     "id": "mtdxax23zp50t",
+     "title": "基础阶段",
+     "targetDate": "",
+     "done": false,
+     "tree": []
+    },
+    {
+     "id": "mtdxax23twvj0",
+     "title": "强化阶段",
+     "targetDate": "",
+     "done": false,
+     "tree": []
+    },
+    {
+     "id": "mtdxax23ovbnb",
+     "title": "冲刺阶段",
+     "targetDate": "",
+     "done": false,
+     "tree": []
+    }
+   ],
+   "tasks": [],
+   "autoArchive": true,
+   "milestones": []
+  },
+  "politics": {
+   "progress": 0,
+   "note": "",
+   "updated": "",
+   "stages": [
+    {
+     "id": "mtinnfd7dpjc7",
+     "title": "基础先行",
+     "targetDate": "2026-08-27",
+     "done": false,
+     "tree": [
+      {
+       "id": "mtio2clyz8jz7",
+       "title": "02.热词讲解",
+       "done": true,
+       "children": [],
+       "doneAt": "2026-09-01"
+      },
+      {
+       "id": "mtio2tvx3kvnk",
+       "title": "03.月度时政速递",
+       "done": false,
+       "children": []
+      },
+      {
+       "id": "mtio328dosh7s",
+       "title": "04.学科框架串讲",
+       "done": true,
+       "children": [],
+       "doneAt": "2026-09-01"
+      },
+      {
+       "id": "mtiomq0m2gzrh",
+       "title": "01.导学规划",
+       "done": true,
+       "children": [],
+       "doneAt": "2026-09-01"
+      }
+     ],
+     "doneAt": null
+    },
+    {
+     "id": "mtiozjkechn3u",
+     "title": "强化提升",
+     "targetDate": "2026-09-30",
+     "done": false,
+     "tree": [
+      {
+       "id": "mtipa4one2cca",
+       "title": "马原",
+       "done": false,
+       "children": []
+      },
+      {
+       "id": "mtipa9nbm9qus",
+       "title": "思修",
+       "done": false,
+       "children": []
+      },
+      {
+       "id": "mtipah4bh1tql",
+       "title": "史纲",
+       "done": false,
+       "children": []
+      },
+      {
+       "id": "mtiparqqll0qk",
+       "title": "毛中特",
+       "done": false,
+       "children": []
+      },
+      {
+       "id": "mtipawu1vl2gd",
+       "title": "新思想",
+       "done": false,
+       "children": []
+      }
+     ]
+    }
+   ],
+   "tasks": [
+    {
+     "id": "mtdxuwpjqja8u",
+     "name": "基础先行-学科知识框架马原",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 81,
+     "stageId": null,
+     "archived": true,
+     "nodeId": null
+    },
+    {
+     "id": "mte0ohx2bwte8",
+     "name": "基础先行-学科知识框架思道法",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 43,
+     "stageId": null,
+     "archived": true,
+     "nodeId": null
+    },
+    {
+     "id": "mte29cg6b2h1v",
+     "name": "基础先行-学科知识框架史纲",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 48,
+     "stageId": null,
+     "archived": true,
+     "nodeId": null
+    },
+    {
+     "id": "mte2ff8h92jvk",
+     "name": "基础先行-导学规划",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 0,
+     "stageId": null,
+     "archived": true,
+     "nodeId": null
+    },
+    {
+     "id": "mte2hj4k5ozg9",
+     "name": "基础先行-热词讲解马原1",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 0,
+     "stageId": null,
+     "archived": true,
+     "nodeId": null
+    },
+    {
+     "id": "mte2hwkrssgua",
+     "name": "基础先行-热词讲解马原2",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 0,
+     "stageId": null,
+     "archived": true,
+     "nodeId": null
+    },
+    {
+     "id": "mte2idb51qc2j",
+     "name": "基础先行-热词讲解史纲1",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 0,
+     "stageId": null,
+     "archived": true,
+     "nodeId": null
+    },
+    {
+     "id": "mte2ik9510tff",
+     "name": "基础先行-热词讲解史纲2",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 0,
+     "stageId": null,
+     "archived": true,
+     "nodeId": null
+    },
+    {
+     "id": "mte2iwobtiec5",
+     "name": "基础先行-热词讲解思修",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 0,
+     "stageId": null,
+     "archived": true,
+     "nodeId": null
+    },
+    {
+     "id": "mte2j7tyrfmzb",
+     "name": "基础先行-热词讲解当代",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 0,
+     "stageId": null,
+     "archived": true,
+     "nodeId": null
+    },
+    {
+     "id": "mte2jt23ky84g",
+     "name": "基础先行-热词讲解毛中特&新思想1",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 0,
+     "stageId": null,
+     "archived": true,
+     "nodeId": null
+    },
+    {
+     "id": "mte2k19d0ssnw",
+     "name": "基础先行-热词讲解毛中特&新思想2",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 0,
+     "stageId": null,
+     "archived": true,
+     "nodeId": null
+    },
+    {
+     "id": "mtgfjd9xtock4",
+     "name": "强化提升-01.导论",
+     "plannedMin": 33,
+     "done": true,
+     "focusMin": 0,
+     "stageId": null,
+     "archived": true,
+     "nodeId": null
+    },
+    {
+     "id": "mthu4iye48r5m",
+     "name": "强化提升-02.哲学及其基本问题",
+     "plannedMin": 60,
+     "done": true,
+     "focusMin": 46,
+     "stageId": null,
+     "archived": true,
+     "nodeId": null
+    },
+    {
+     "id": "mtio53jxd5h0k",
+     "name": "01.马原",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 100,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio328dosh7s",
+     "doneAt": "2026-09-01",
+     "archived": true
+    },
+    {
+     "id": "mtio5jzylpvjk",
+     "name": "02.思道法",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 100,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio328dosh7s",
+     "doneAt": "2026-09-01",
+     "archived": true
+    },
+    {
+     "id": "mtio5zojy7r8m",
+     "name": "03.史纲",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 100,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio328dosh7s",
+     "doneAt": "2026-09-01",
+     "archived": true
+    },
+    {
+     "id": "mtio73f840pqw",
+     "name": "04.毛中特",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 100,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio328dosh7s",
+     "doneAt": "2026-09-01",
+     "archived": true
+    },
+    {
+     "id": "mtio7t48ssevf",
+     "name": "05.新思想",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 100,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio328dosh7s",
+     "doneAt": "2026-09-01",
+     "archived": true
+    },
+    {
+     "id": "mtion56rsswe3",
+     "name": "导学规划",
+     "plannedMin": 40,
+     "done": true,
+     "focusMin": 40,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtiomq0m2gzrh",
+     "doneAt": "2026-09-01",
+     "archived": true
+    },
+    {
+     "id": "mtioox88s284n",
+     "name": "01.马原1",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 100,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio2clyz8jz7",
+     "doneAt": "2026-09-01",
+     "archived": true
+    },
+    {
+     "id": "mtiopa5j2sr89",
+     "name": "02.马原2",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 100,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio2clyz8jz7",
+     "doneAt": "2026-09-01",
+     "archived": true
+    },
+    {
+     "id": "mtiopn14kx18b",
+     "name": "03.史纲1",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 100,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio2clyz8jz7",
+     "doneAt": "2026-09-01",
+     "archived": true
+    },
+    {
+     "id": "mtiopx23rpr9l",
+     "name": "04.史纲2",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 100,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio2clyz8jz7",
+     "doneAt": "2026-09-01",
+     "archived": true
+    },
+    {
+     "id": "mtioq4ue6hw22",
+     "name": "05.思修",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 100,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio2clyz8jz7",
+     "doneAt": "2026-09-01",
+     "archived": true
+    },
+    {
+     "id": "mtioqc8u3g155",
+     "name": "06.当代",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 100,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio2clyz8jz7",
+     "doneAt": "2026-09-01",
+     "archived": true
+    },
+    {
+     "id": "mtioqpu6tyotw",
+     "name": "07.毛中特&新思想1",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 100,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio2clyz8jz7",
+     "doneAt": "2026-09-01",
+     "archived": true
+    },
+    {
+     "id": "mtior23dh6oje",
+     "name": "毛中特&新思想2",
+     "plannedMin": 100,
+     "done": true,
+     "focusMin": 100,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio2clyz8jz7",
+     "doneAt": "2026-09-01",
+     "archived": true
+    },
+    {
+     "id": "mtioumlvtqosd",
+     "name": "1月时政",
+     "plannedMin": 90,
+     "done": true,
+     "focusMin": 51,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio2tvx3kvnk",
+     "doneAt": "2026-09-01",
+     "archived": true
+    },
+    {
+     "id": "mtiov191jao6f",
+     "name": "2月时政",
+     "plannedMin": 90,
+     "done": true,
+     "focusMin": 54,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio2tvx3kvnk",
+     "doneAt": "2026-09-02",
+     "archived": true
+    },
+    {
+     "id": "mtiovbhr83hn1",
+     "name": "3月时政",
+     "plannedMin": 90,
+     "done": false,
+     "focusMin": 0,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio2tvx3kvnk"
+    },
+    {
+     "id": "mtiovjgiovbxh",
+     "name": "4月时政",
+     "plannedMin": 90,
+     "done": false,
+     "focusMin": 0,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio2tvx3kvnk"
+    },
+    {
+     "id": "mtiovqkrb3e9u",
+     "name": "5月时政",
+     "plannedMin": 90,
+     "done": false,
+     "focusMin": 0,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio2tvx3kvnk"
+    },
+    {
+     "id": "mtiow0z2ajypl",
+     "name": "6月时政",
+     "plannedMin": 90,
+     "done": false,
+     "focusMin": 0,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio2tvx3kvnk"
+    },
+    {
+     "id": "mtiowaxwvuk21",
+     "name": "7月时政",
+     "plannedMin": 90,
+     "done": false,
+     "focusMin": 0,
+     "stageId": "mtinnfd7dpjc7",
+     "nodeId": "mtio2tvx3kvnk"
+    },
+    {
+     "id": "mtipdqoqzn42s",
+     "name": "01.导论",
+     "plannedMin": 40,
+     "done": true,
+     "focusMin": 40,
+     "stageId": "mtiozjkechn3u",
+     "nodeId": "mtipa4one2cca",
+     "doneAt": "2026-09-01",
+     "archived": true
+    },
+    {
+     "id": "mtipe7xivc43p",
+     "name": "02.哲学及其基本问题",
+     "plannedMin": 40,
+     "done": true,
+     "focusMin": 40,
+     "stageId": "mtiozjkechn3u",
+     "nodeId": "mtipa4one2cca",
+     "doneAt": "2026-09-01",
+     "archived": true
+    },
+    {
+     "id": "mtipr2imly8yt",
+     "name": "03.物质观",
+     "plannedMin": 40,
+     "done": true,
+     "focusMin": 40,
+     "stageId": "mtiozjkechn3u",
+     "nodeId": "mtipa4one2cca",
+     "doneAt": "2026-09-02",
+     "archived": true
+    }
+   ],
+   "autoArchive": true,
+   "milestones": [
+    {
+     "id": "mtioyezrn1mua",
+     "name": "政治要完整的学一遍",
+     "date": "2026-09-30"
+    }
+   ]
+  },
+  "english": {
+   "progress": 0,
+   "note": "",
+   "updated": "",
+   "stages": [
+    {
+     "id": "mtffjv821yngk",
+     "title": "完成大小作文所有类型的模版",
+     "targetDate": "2026-08-30",
+     "done": false,
+     "tree": []
+    }
+   ],
+   "tasks": [
+    {
+     "id": "mtffknhhj3iup",
+     "name": "完成大小作文所有类型的万能模版",
+     "plannedMin": 300,
+     "done": false,
+     "focusMin": 247,
+     "stageId": "mtffjv821yngk"
+    }
+   ],
+   "autoArchive": true,
+   "milestones": []
+  }
+ },
+ "focusLogs": [
+  {
+   "date": "2026-08-29",
+   "subject": "politics",
+   "minutes": 51,
+   "ts": 1787985902931
+  },
+  {
+   "date": "2026-08-29",
+   "subject": "politics",
+   "minutes": 43,
+   "ts": 1787988553788
+  },
+  {
+   "date": "2026-08-29",
+   "subject": "politics",
+   "minutes": 48,
+   "ts": 1787991490578
+  },
+  {
+   "date": "2026-08-29",
+   "subject": "politics",
+   "minutes": 31,
+   "ts": 1787993395511
+  },
+  {
+   "date": "2026-08-30",
+   "subject": "english",
+   "minutes": 200,
+   "ts": 1788083487258
+  },
+  {
+   "date": "2026-08-31",
+   "subject": "politics",
+   "minutes": 30,
+   "ts": 1788133647423
+  },
+  {
+   "date": "2026-08-31",
+   "subject": "english",
+   "minutes": 30,
+   "ts": 1788136004628
+  },
+  {
+   "date": "2026-08-31",
+   "subject": "english",
+   "minutes": 4,
+   "ts": 1788136270941
+  },
+  {
+   "date": "2026-08-31",
+   "subject": "math",
+   "minutes": 60,
+   "ts": 1788185367920
+  },
+  {
+   "date": "2026-08-31",
+   "subject": "math",
+   "minutes": 60,
+   "ts": 1788189507923
+  },
+  {
+   "date": "2026-09-01",
+   "subject": "math",
+   "minutes": 60,
+   "ts": 1788193228072
+  },
+  {
+   "date": "2026-09-01",
+   "subject": "politics",
+   "minutes": 46,
+   "ts": 1788219603274
+  },
+  {
+   "date": "2026-09-01",
+   "subject": "politics",
+   "minutes": 60,
+   "ts": 1788269723803
+  },
+  {
+   "date": "2026-09-01",
+   "subject": "politics",
+   "minutes": -60,
+   "ts": 1788269751249
+  },
+  {
+   "date": "2026-09-01",
+   "subject": "politics",
+   "minutes": 51,
+   "ts": 1788273229528
+  },
+  {
+   "date": "2026-09-02",
+   "subject": "politics",
+   "minutes": 40,
+   "ts": 1788302457760
+  },
+  {
+   "date": "2026-09-02",
+   "subject": "politics",
+   "minutes": 54,
+   "ts": 1788305730497
+  },
+  {
+   "date": "2026-09-02",
+   "subject": "english",
+   "minutes": 13,
+   "ts": 1788306626250
+  }
+ ]
+}
